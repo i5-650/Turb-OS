@@ -4,14 +4,6 @@ all: limine stivale2.h
 	@$(MAKE) -s -C $(KERNELDIR)/src clean
 	@$(MAKE) -s -C $(KERNELDIR)/src
 
-bios: limine stivale2.h
-	@$(MAKE) -s -C $(KERNELDIR)/src clean
-	@$(MAKE) -s -C $(KERNELDIR)/src bios
-
-test: limine stivale2.h
-	@$(MAKE) -s -C $(KERNELDIR)/src clean
-	@$(MAKE) -s -C $(KERNELDIR)/src test
-
 stivale2.h:
 	@wget -nc https://github.com/stivale/stivale/raw/master/stivale2.h -P $(KERNELDIR)/src/
 

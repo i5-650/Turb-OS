@@ -91,16 +91,6 @@ all: $(KERNEL) initrd
 	$(MAKE) iso
 	$(MAKE) clean run
 
-.PHONY: bios
-bios: $(KERNEL) initrd
-	$(MAKE) iso
-	$(MAKE) clean run-bios
-
-.PHONY: test
-test: $(KERNEL) initrd
-	$(MAKE) iso
-	$(MAKE) clean run-test
-
 $(KERNEL):
 	$(MAKE) $(OBJ)
 	@printf "Linking\t%s\n" $(lastword $(subst /, ,$(KERNEL)))
