@@ -19,6 +19,7 @@
 #include <system/CPU/APIC/apic.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <apps/turboShell.hpp>
+#include <apps/turboShell.hpp>
 #pragma endregion include
 
 
