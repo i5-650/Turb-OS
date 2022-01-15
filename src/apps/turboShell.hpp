@@ -1,7 +1,5 @@
 #pragma once 
 
-namespace src::apps::turboShell{
-    void run(){
-        
-    }
+namespace turbo::shell{
+    void run();
 }
