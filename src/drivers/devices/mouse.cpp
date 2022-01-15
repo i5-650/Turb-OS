@@ -9,6 +9,12 @@ using namespace turbo;
 
 namespace turbo::mouse {
 
+	#define RED 0xff0000
+	#define PURPLE 0xdd56f5
+	#define BLUE 0x0000ff
+	#define GREEN 0x00ff00
+	
+
 	bool isInit = false;
 
 	uint8_t cycle = 0;
@@ -205,10 +211,10 @@ namespace turbo::mouse {
 		switch(mouse::getMouseState()){
 			case mouse::PS2_LEFT:
 				if(circle){
-					framebuffer::drawFilledCircle(mouse::position.X, mouse::position.Y, 5, 0xff0000);  
+					framebuffer::drawFilledCircle(mouse::position.X, mouse::position.Y, 5, 0x1fe079);  
 				} 
 				else{
-					framebuffer::drawFilledRectangle(mouse::position.X, mouse::position.Y, 10, 10, 0xff0000);
+					framebuffer::drawFilledRectangle(mouse::position.X, mouse::position.Y, 10, 10, 0x1fe079);
 				}
 
 				break;
@@ -225,10 +231,10 @@ namespace turbo::mouse {
 
 			case mouse::PS2_RIGHT:
 				if(circle){
-					framebuffer::drawFilledCircle(mouse::position.X, mouse::position.Y, 5, 0xdd56f5);
+					framebuffer::drawFilledCircle(mouse::position.X, mouse::position.Y, 5, 0xff00dd);
 				}   
 				else{
-					framebuffer::drawFilledRectangle(mouse::position.X, mouse::position.Y, 10, 10, 0xdd56f5);
+					framebuffer::drawFilledRectangle(mouse::position.X, mouse::position.Y, 10, 10, 0xff00dd);
 				}
 				break;
 
