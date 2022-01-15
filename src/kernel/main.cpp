@@ -18,7 +18,10 @@
 #include <drivers/devices/mouse.hpp>
 #include <system/CPU/APIC/apic.hpp>
 #include <system/ACPI/acpi.hpp>
+#include <apps/turboShell.hpp>
 #pragma endregion include
+
+
 
 namespace turbo {
 
@@ -142,7 +145,10 @@ namespace turbo {
 
 		printf("NEVER GONNA GIVE YOU UP\n");
 		printf("NEVER GONNA LET YOU DOWN\n");
-	
+
+		printf("Starting the TurboShell \n");
+		turbo::shell::run();
+		
 			char *str = turbo::keyboard::getLine();
 			printf("%s", str);
 
