@@ -4,6 +4,7 @@
 #include <lib/lock.hpp>
 #include <lib/portIO.hpp>
 #include <system/CPU/PIC/pic.hpp>
+#include <system/CPU/APIC/apic.hpp>
 
 using namespace turbo;
 
@@ -61,6 +62,9 @@ namespace turbo::idt {
 
 	void registerInterruptHandler(uint8_t vector, intHandler_t handler){
 		interrupt_handlers[vector] = handler;
+		if(apic::isInit && vector > 31 && vector < 48){
+			apic::ioapicRedirectIRQ(vector - 32, vector);
+		}
 	}
 
 	static const char *exception_messages[32] = {
@@ -125,18 +129,16 @@ namespace turbo::idt {
 	}
 
 	void irq_handler(registers_t *regs){
-		if(regs->int_no == 32){
-			pic::endOfInterrupt(32);
-			if(interrupt_handlers[32]){
-				interrupt_handlers[32](regs);
-			}
-			return;
-		}
 		if(interrupt_handlers[regs->int_no]){
 			interrupt_handlers[regs->int_no](regs);
 		}
 
-		pic::endOfInterrupt(regs->int_no);
+		if(apic::isInit){
+			apic::endOfInterrupt();
+		}
+		else{
+			pic::endOfInterrupt(regs->int_no);
+		}
 	}
 
 	void int_handler(registers_t *regs){

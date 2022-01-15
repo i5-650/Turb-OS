@@ -8,6 +8,7 @@
 #include <lib/lock.hpp>
 #include <lib/portIO.hpp>
 #include <system/memory/heap/heap.hpp>
+#include <system/ACPI/acpi.hpp>
 
 using namespace turbo::heap;
 
@@ -47,7 +48,7 @@ namespace turbo::keyboard {
 		char ch = getASCIIchar(scancode);
 
 		if(kbd_mod.ctrl && kbd_mod.alt && scancode == keys::DELETE){
-			// TODO: reboot
+			acpi::reboot();
 			terminal::print("Supposed to reboot");
 		}
 		else if(kbd_mod.ctrl && ((ch == 'l') || (ch == 'L'))){
