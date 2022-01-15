@@ -14,7 +14,10 @@
 #include <lib/panic.hpp>
 #include <lib/lock.hpp>
 #include <stivale2.h>
+#include <apps/turboShell.hpp>
 #pragma endregion include
+
+
 
 namespace turbo {
 
@@ -53,7 +56,6 @@ namespace turbo {
 		hhdm_tag = (stivale2_struct_tag_hhdm (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_HHDM_ID);
 		pmrs_tag = (stivale2_struct_tag_pmrs (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_PMRS_ID);
 		kbaddr_tag = (stivale2_struct_tag_kernel_base_address (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_KERNEL_BASE_ADDRESS_ID);
-
 
 		cmdline = (char *)cmd_tag->cmdline;
 
@@ -123,6 +125,9 @@ namespace turbo {
 
 		printf("NEVER GONNA GIVE YOU UP\n");
 		printf("NEVER GONNA LET YOU DOWN\n");
+
+		printf("Starting the TurboShell \n");
+		turbo::shell::run();
 		
 		while(true){
 			char *str = turbo::keyboard::getLine();

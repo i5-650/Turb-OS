@@ -4,9 +4,9 @@
 #include <drivers/display/terminal/printf.h>
 #include <lib/string.hpp>
 #include <drivers/display/serial/serial.hpp>
+#include <apps/turboShell.hpp>
 
-
-namespace src::apps::turboShell{
+namespace turbo::shell{
 
     void parse(char* cmd,char* arg){
         switch(hash(cmd)){
@@ -31,7 +31,7 @@ namespace src::apps::turboShell{
 
             for(size_t i= 0;i<strlen(command);i++){
                 if(command[i] != ' ' && command[i] != '\0'){
-                    char c[2] = '\0';
+                    char c[2] ="\0";
                     c[0] = command[i];
                     strcat(cmd,c);
                 }
