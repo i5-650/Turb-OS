@@ -7,6 +7,9 @@
 #include <lib/memory/memory.hpp>
 #include <lib/lock.hpp>
 #include <lib/portIO.hpp>
+#include <system/memory/heap/heap.hpp>
+
+using namespace turbo::heap;
 
 namespace turbo::keyboard {
 	bool isInit = false;
@@ -65,7 +68,7 @@ namespace turbo::keyboard {
 		}
 	}
 
-	static void Keyboard_Handler(registers_t *){
+	static void Keyboard_Handler(turbo::idt::registers_t *){
 		uint8_t scancode = inb(0x60);
 
 		if(scancode & 0x80){
@@ -215,9 +218,9 @@ namespace turbo::keyboard {
 			serial::log("[!!] Already init: keyboard\n");
 			return;
 		}
-
+		buff = (char*)malloc(sizeof(char)* 10);
 		buff[0] = '\0';
-		registerInterruptHandler(idt::IRQ10, Keyboard_Handler);
+		registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
 
 		serial::newline();
 		isInit = true;

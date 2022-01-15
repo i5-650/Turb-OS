@@ -56,6 +56,7 @@ namespace turbo::pci {
 	};
 
 	extern bool isInit;
+	extern bool legacy;
 
 	extern TurboVector<TranslatedPCIdevice_t*> PCIdevices;
 

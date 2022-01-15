@@ -73,7 +73,7 @@ namespace turbo::heap {
 			}
 		}
 
-		serial::log("[RAM] Freeing %zu bytes\n", header->lenght + sizeof(struct HeapSegmentHeader));
+		//serial::log("[RAM] Freeing %zu bytes\n", header->lenght + sizeof(struct HeapSegmentHeader));
 
 		release_lock(heap_lock);
 	}
@@ -109,7 +109,7 @@ namespace turbo::heap {
 					usedSize += currentSegment->lenght + sizeof(struct HeapSegmentHeader);
 					freeSize -= currentSegment->lenght + sizeof(struct HeapSegmentHeader);
 
-					serial::log("[RAM] Allocating %zu bytes\n", size + sizeof(struct HeapSegmentHeader));
+					//serial::log("[RAM] Allocating %zu bytes\n", size + sizeof(struct HeapSegmentHeader));
 					release_lock(heap_lock);
 
 					return (void*)((uint64_t)currentSegment + sizeof(struct HeapSegmentHeader));
@@ -118,7 +118,7 @@ namespace turbo::heap {
 				if(currentSegment->lenght == size){
 					currentSegment->isFree = false;
 
-					serial::log("[RAM] Allocation %zu byes\n", size + sizeof(struct HeapSegmentHeader));
+					//serial::log("[RAM] Allocation %zu byes\n", size + sizeof(struct HeapSegmentHeader));
 
 					usedSize += currentSegment->lenght + sizeof(struct HeapSegmentHeader);
 					freeSize -= currentSegment->lenght + sizeof(struct HeapSegmentHeader);
@@ -353,7 +353,7 @@ namespace turbo::heap {
 		totalSize += lenght + sizeof(struct HeapSegmentHeader);
 		freeSize -= lenght + sizeof(HeapSegmentHeader);
 
-		serial::log("[RAM] heap expand: %zu bytes", lenght);
+		//serial::log("[RAM] heap expand: %zu bytes", lenght);
 	}
 }
 

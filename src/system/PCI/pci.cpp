@@ -4,12 +4,14 @@
 #include <system/PCI/pci.hpp>
 #include <lib/string.hpp>
 #include <lib/portIO.hpp>
+#include <system/ACPI/acpi.hpp>
 
 using namespace turbo::heap;
 
 namespace turbo::pci {
 
 	bool isInit = false;
+	bool legacy = false;
 
 	TurboVector<TranslatedPCIdevice_t*> PCIdevices;
 
@@ -203,53 +205,71 @@ namespace turbo::pci {
 	void init(){
 		turbo::serial::log("[+] Initialising PCI");
 
-		if (isInit){
+		if(isInit){
 			turbo::serial::log("[!!] Already init: PCI!\n");
 			return;
 		}
 
+		if(!turbo::acpi::mcfghdr){
+			turbo::serial::log("MCFG not found");
+			legacy = false;
+		}
+
+
 		PCIdevices.init(5);
-		for (int bus = 0; bus < 256; ++bus){
-			for (int dev = 0; dev < 32; ++dev){
-				for (int func = 0; func < 8; ++func){
-					uint32_t config_0 = readl(bus, dev, func, 0);
 
-					if(config_0 == 0xFFFFFFFF){
-						continue;
+		if(!legacy){
+			int entries = ((turbo::acpi::mcfghdr->header.length) - sizeof(turbo::acpi::MCFGHeader)) / sizeof(turbo::acpi::deviceconfig);
+			for(int i = 0; i < entries; ++i){
+				turbo::acpi::deviceconfig *newDeviceConfig = (turbo::acpi::deviceconfig*)((uint64_t)turbo::acpi::mcfghdr + sizeof(turbo::acpi::MCFGHeader) + (sizeof(turbo::acpi::deviceconfig) * i));
+				for(uint64_t bus = newDeviceConfig->startbus; bus < newDeviceConfig->endbus; bus++){
+					enumbus(newDeviceConfig->baseaddr, bus);
+				}
+			}
+		}
+		else{
+			for (int bus = 0; bus < 256; ++bus){
+				for (int dev = 0; dev < 32; ++dev){
+					for (int func = 0; func < 8; ++func){
+						uint32_t config_0 = readl(bus, dev, func, 0);
+
+						if(config_0 == 0xFFFFFFFF){
+							continue;
+						}
+
+						uint32_t config_4 = readl(bus, dev, func, 0x4);
+						uint32_t config_8 = readl(bus, dev, func, 0x8);
+						uint32_t config_c = readl(bus, dev, func, 0xc);
+
+						PCIdevice_t *pcidevice = (PCIdevice_t*)malloc(sizeof(PCIdevice_t));
+
+						pcidevice->vendorID = (uint16_t)config_0;
+						pcidevice->deviceID = (uint16_t)(config_0 >> 16);
+						pcidevice->command = (uint16_t)config_4;
+						pcidevice->status = (uint16_t)(config_4 >> 16);
+						pcidevice->revisionID = (uint8_t)config_8;
+						pcidevice->progIF = (uint8_t)(config_8 >> 8);
+						pcidevice->subclass = (uint8_t)(config_8 >> 16);
+						pcidevice->classID = (uint8_t)(config_8 >> 24);
+						pcidevice->cacheLineSize = (uint8_t)config_c;
+						pcidevice->latencyTimer = (uint8_t)(config_c >> 8);
+						pcidevice->headerType = (uint8_t)(config_c >> 16);
+						pcidevice->bist = (uint8_t)(config_c >> 24);
+
+						currentBus = bus;
+						currentDev = dev;
+						currentFunc = func;
+
+						PCIdevices.push_back(translate(pcidevice));
+
+						free(pcidevice);
+
+						turbo::serial::log("%.4X:%.4X %s %s",
+							PCIdevices.last()->device->vendorID,
+							PCIdevices.last()->device->deviceID,
+							PCIdevices.last()->vendorStr,
+							PCIdevices.last()->deviceStr);
 					}
-
-					uint32_t config_4 = readl(bus, dev, func, 0x4);
-					uint32_t config_8 = readl(bus, dev, func, 0x8);
-					uint32_t config_c = readl(bus, dev, func, 0xc);
-
-					PCIdevice_t *pcidevice = (PCIdevice_t*)malloc(sizeof(PCIdevice_t));
-
-					pcidevice->vendorID = (uint16_t)config_0;
-					pcidevice->deviceID = (uint16_t)(config_0 >> 16);
-					pcidevice->command = (uint16_t)config_4;
-					pcidevice->status = (uint16_t)(config_4 >> 16);
-					pcidevice->revisionID = (uint8_t)config_8;
-					pcidevice->progIF = (uint8_t)(config_8 >> 8);
-					pcidevice->subclass = (uint8_t)(config_8 >> 16);
-					pcidevice->classID = (uint8_t)(config_8 >> 24);
-					pcidevice->cacheLineSize = (uint8_t)config_c;
-					pcidevice->latencyTimer = (uint8_t)(config_c >> 8);
-					pcidevice->headerType = (uint8_t)(config_c >> 16);
-					pcidevice->bist = (uint8_t)(config_c >> 24);
-
-					currentBus = bus;
-					currentDev = dev;
-					currentFunc = func;
-
-					PCIdevices.push_back(translate(pcidevice));
-
-					free(pcidevice);
-
-					turbo::serial::log("%.4X:%.4X %s %s",
-						PCIdevices.last()->device->vendorID,
-						PCIdevices.last()->device->deviceID,
-						PCIdevices.last()->vendorStr,
-						PCIdevices.last()->deviceStr);
 				}
 			}
 		}

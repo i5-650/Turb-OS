@@ -72,7 +72,7 @@ namespace turbo::serial {
 		serialPrintf("\n");
 	}
 
-	static void COM1_Handler(registers_t *){
+	static void COM1_Handler(idt::registers_t *){
 		char c = read();
 		switch(c){
 			case 13:

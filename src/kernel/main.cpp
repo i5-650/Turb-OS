@@ -14,6 +14,9 @@
 #include <lib/panic.hpp>
 #include <lib/lock.hpp>
 #include <stivale2.h>
+#include <system/CPU/SMP/smp.hpp>
+#include <drivers/devices/mouse.hpp>
+#include <system/CPU/APIC/apic.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -53,7 +56,7 @@ namespace turbo {
 		hhdm_tag = (stivale2_struct_tag_hhdm (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_HHDM_ID);
 		pmrs_tag = (stivale2_struct_tag_pmrs (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_PMRS_ID);
 		kbaddr_tag = (stivale2_struct_tag_kernel_base_address (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_KERNEL_BASE_ADDRESS_ID);
-
+		
 
 		cmdline = (char *)cmd_tag->cmdline;
 
@@ -112,22 +115,35 @@ namespace turbo {
 		turbo::idt::init();
 		turbo::terminal::okerr(idt::isInit);
 
+		turbo::terminal::check("Initialising ACPI...");
+		turbo::pci::init();
+		turbo::terminal::okerr(pci::isInit);
+
+		turbo::terminal::check("Initialising fucking PCI...");
+		turbo::pci::init();
+		turbo::terminal::okerr(pci::isInit);
+
+		turbo::terminal::check("Initialising fucking APIC...");
+		turbo::apic::init();
+		turbo::terminal::okerr(apic::isInit);
+
+		turbo::terminal::check("Initialising SMP...");
+		turbo::smp::init();
+		turbo::terminal::okerr(turbo::smp::isInit);
+
 		turbo::terminal::check("Initialising PS/2 Keyboard...");
 		turbo::keyboard::init();
 		turbo::terminal::okerr(turbo::keyboard::isInit);
 
-		turbo::terminal::check("Initialising Peripheral Component Interconnect...");
-		turbo::pci::init();
-		turbo::terminal::okerr(pci::isInit);
-
+		turbo::terminal::check("Initialising PS/2 Mouse...");
+		turbo::mouse::init();
+		turbo::terminal::okerr(turbo::mouse::isInit);
 
 		printf("NEVER GONNA GIVE YOU UP\n");
 		printf("NEVER GONNA LET YOU DOWN\n");
-		
-		while(true){
+	
 			char *str = turbo::keyboard::getLine();
 			printf("%s", str);
-		}
 
 	}
 }

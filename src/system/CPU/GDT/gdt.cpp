@@ -4,6 +4,7 @@
 #include <kernel/main.hpp>
 #include <lib/memory/memory.hpp>
 #include <lib/lock.hpp>
+#include <system/CPU/SMP/smp.hpp>
 
 namespace turbo::gdt {
 
@@ -80,12 +81,12 @@ namespace turbo::gdt {
 	uint64_t getStack(uint64_t cpu){
 		return tss[cpu].RSP[0];
 	}
-	/*
+
 	void setStack(uintptr_t stack){
-		tss[this_cpu->lapic_id].RSP[0] = stack;
+		tss[thisCPU->lapicID].RSP[0] = stack;
 	}
 
 	uint64_t getStack(){
-		return tss[this_cpu->lapic_id].RSP[0];
-	}*/
+		return tss[thisCPU->lapicID].RSP[0];
+	}
 }
