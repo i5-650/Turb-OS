@@ -17,6 +17,7 @@
 #include <system/CPU/SMP/smp.hpp>
 #include <drivers/devices/mouse.hpp>
 #include <system/CPU/APIC/apic.hpp>
+#include <system/ACPI/acpi.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -116,8 +117,8 @@ namespace turbo {
 		turbo::terminal::okerr(idt::isInit);
 
 		turbo::terminal::check("Initialising ACPI...");
-		turbo::pci::init();
-		turbo::terminal::okerr(pci::isInit);
+		turbo::acpi::init();
+		turbo::terminal::okerr(acpi::isInit);
 
 		turbo::terminal::check("Initialising fucking PCI...");
 		turbo::pci::init();

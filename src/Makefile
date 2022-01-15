@@ -19,7 +19,7 @@ XORRISO = xorriso
 QEMU = qemu-system-x86_64
 
 QEMUFLAGS = -M q35 \
-	-cpu max -smp 12 -m 512M \
+	-cpu max -smp 4 -m 512M \
 	-boot d -rtc base=localtime \
 	-serial stdio -drive format=raw,file=$(DISK)
 

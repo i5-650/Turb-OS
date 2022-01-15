@@ -54,8 +54,8 @@ namespace turbo::heap {
 
 		struct HeapSegmentHeader* header = (struct HeapSegmentHeader*)((uint64_t)address - sizeof(struct HeapSegmentHeader));
 		header->isFree = true;
-		freeSize += header->lenght + sizeof(struct HeapSegmentHeader);
-		usedSize -= header->lenght + sizeof(struct HeapSegmentHeader);
+		freeSize += header->length + sizeof(struct HeapSegmentHeader);
+		usedSize -= header->length + sizeof(struct HeapSegmentHeader);
 
 		if(header->nextSegment && header->lastSegment){
 			if(header->nextSegment->isFree && header->lastSegment->isFree){
@@ -73,7 +73,7 @@ namespace turbo::heap {
 			}
 		}
 
-		//serial::log("[RAM] Freeing %zu bytes\n", header->lenght + sizeof(struct HeapSegmentHeader));
+		//serial::log("[RAM] Freeing %zu bytes\n", header->length + sizeof(struct HeapSegmentHeader));
 
 		release_lock(heap_lock);
 	}
@@ -102,12 +102,12 @@ namespace turbo::heap {
 		while(true){
 
 			if(currentSegment->isFree){
-				if(currentSegment->lenght > size){
+				if(currentSegment->length > size){
 					currentSegment->split(size);
 					currentSegment->isFree = false;
 
-					usedSize += currentSegment->lenght + sizeof(struct HeapSegmentHeader);
-					freeSize -= currentSegment->lenght + sizeof(struct HeapSegmentHeader);
+					usedSize += currentSegment->length + sizeof(struct HeapSegmentHeader);
+					freeSize -= currentSegment->length + sizeof(struct HeapSegmentHeader);
 
 					//serial::log("[RAM] Allocating %zu bytes\n", size + sizeof(struct HeapSegmentHeader));
 					release_lock(heap_lock);
@@ -115,13 +115,13 @@ namespace turbo::heap {
 					return (void*)((uint64_t)currentSegment + sizeof(struct HeapSegmentHeader));
 				}
 
-				if(currentSegment->lenght == size){
+				if(currentSegment->length == size){
 					currentSegment->isFree = false;
 
 					//serial::log("[RAM] Allocation %zu byes\n", size + sizeof(struct HeapSegmentHeader));
 
-					usedSize += currentSegment->lenght + sizeof(struct HeapSegmentHeader);
-					freeSize -= currentSegment->lenght + sizeof(struct HeapSegmentHeader);
+					usedSize += currentSegment->length + sizeof(struct HeapSegmentHeader);
+					freeSize -= currentSegment->length + sizeof(struct HeapSegmentHeader);
 
 					release_lock(heap_lock);
 
@@ -179,7 +179,7 @@ namespace turbo::heap {
 			}
 		}
 
-		this->lastSegment->lenght += this->lenght + sizeof(struct HeapSegmentHeader) + this->nextSegment->lenght + sizeof(struct HeapSegmentHeader);
+		this->lastSegment->length += this->length + sizeof(struct HeapSegmentHeader) + this->nextSegment->length + sizeof(struct HeapSegmentHeader);
 		this->lastSegment->nextSegment = this->nextSegment->nextSegment;
 		this->nextSegment->nextSegment->lastSegment = this->lastSegment;
 
@@ -189,7 +189,7 @@ namespace turbo::heap {
 
 	void HeapSegmentHeader::mergeCurrentToLast(){
 
-		this->lastSegment->lenght += this->lenght + sizeof(struct HeapSegmentHeader);
+		this->lastSegment->length += this->length + sizeof(struct HeapSegmentHeader);
 		this->lastSegment->nextSegment = this->nextSegment;
 		this->nextSegment->lastSegment = this->lastSegment;
 
@@ -217,7 +217,7 @@ namespace turbo::heap {
 	void HeapSegmentHeader::mergeNextToCurrent(){
 		struct HeapSegmentHeader* nextHeader = this->nextSegment;
 
-		this->lenght += this->nextSegment->lenght + sizeof(struct HeapSegmentHeader);
+		this->length += this->nextSegment->length + sizeof(struct HeapSegmentHeader);
 		this->nextSegment = this->nextSegment->nextSegment;
 		this->nextSegment->lastSegment = this;
 
@@ -247,7 +247,7 @@ namespace turbo::heap {
 	}
 
 	void HeapSegmentHeader::split(size_t size){
-		if(this->lenght < size + sizeof(struct HeapSegmentHeader)){
+		if(this->length < size + sizeof(struct HeapSegmentHeader)){
 			return;
 		}
 
@@ -255,7 +255,7 @@ namespace turbo::heap {
 		memset(newSegment, 0, sizeof(struct HeapSegmentHeader));
 
 		newSegment->isFree = true;
-		newSegment->lenght = this->lenght - size - sizeof(struct HeapSegmentHeader);
+		newSegment->length = this->length - size - sizeof(struct HeapSegmentHeader);
 		newSegment->nextSegment = this->nextSegment;
 		newSegment->lastSegment = this;
 
@@ -264,12 +264,12 @@ namespace turbo::heap {
 		}
 
 		this->nextSegment = newSegment;
-		this->lenght = size;
+		this->length = size;
 	}
 
 	size_t getSize(void* ptr){
 		struct HeapSegmentHeader* s = reinterpret_cast<struct HeapSegmentHeader*>(ptr) - 1;
-		return s->lenght;
+		return s->length;
 	}
 
 	void* calloc(size_t num, size_t size){
@@ -314,15 +314,15 @@ namespace turbo::heap {
 		return newPtr;
 	}
 
-	void expandHeap(size_t lenght){
-		lenght += sizeof(struct HeapSegmentHeader);
+	void expandHeap(size_t length){
+		length += sizeof(struct HeapSegmentHeader);
 
-		if(lenght % 0x1000){
-			lenght -= lenght % 0x1000;
-			lenght += 0x1000;
+		if(length % 0x1000){
+			length -= length % 0x1000;
+			length += 0x1000;
 		}
 
-		size_t pageCount = lenght / 0x1000;
+		size_t pageCount = length / 0x1000;
 
 		struct HeapSegmentHeader* newSegment = reinterpret_cast<struct HeapSegmentHeader*>(heapEnd);
 		for(size_t i = 0; i < pageCount; ++i){
@@ -331,10 +331,10 @@ namespace turbo::heap {
 		}
 
 		if(tail && tail->isFree){
-			tail->lenght += lenght;
+			tail->length += length;
 		}
 		else {
-			newSegment->lenght = lenght - sizeof(struct HeapSegmentHeader);
+			newSegment->length = length - sizeof(struct HeapSegmentHeader);
 			newSegment->isFree = true;
 			newSegment->lastSegment = tail;
 			newSegment->nextSegment = nullptr;
@@ -350,10 +350,10 @@ namespace turbo::heap {
 			head = newSegment;
 		}
 
-		totalSize += lenght + sizeof(struct HeapSegmentHeader);
-		freeSize -= lenght + sizeof(HeapSegmentHeader);
+		totalSize += length + sizeof(struct HeapSegmentHeader);
+		freeSize -= length + sizeof(HeapSegmentHeader);
 
-		//serial::log("[RAM] heap expand: %zu bytes", lenght);
+		//serial::log("[RAM] heap expand: %zu bytes", length);
 	}
 }
 
