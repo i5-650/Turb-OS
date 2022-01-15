@@ -6,7 +6,6 @@
 #include <system/CPU/PIC/pic.hpp>
 #include <system/CPU/IDT/idt.hpp>
 #include <system/CPU/APIC/apic.hpp>
-#include <kernel/main.hpp>
 #include <system/ACPI/acpi.hpp>
 
 using namespace turbo;
@@ -14,6 +13,7 @@ using namespace turbo;
 namespace turbo::apic {
 	bool isInit = false;
 	static bool x2apic = false;
+	bool legacy = false;
 
 	static inline uint32_t reg2x2apic(uint32_t reg){
 		uint32_t x2apic_reg = 0;
@@ -204,11 +204,11 @@ namespace turbo::apic {
 		}
 	}
 
-	static void SCIHandler(registers_t *){
+	static void SCIHandler(idt::registers_t *){
 		uint16_t event = getSCIevent();
 		if (event & ACPI_POWER_BUTTON){
 			acpi::shutdown();
-			//TODO sleep()
+			// TODO : sleep 
 			outw(0xB004, 0x2000);
 			outw(0x604, 0x2000);
 			outw(0x4004, 0x3400);
@@ -218,12 +218,12 @@ namespace turbo::apic {
 	void init(){
 		serial::log("[+] Initialising APIC");
 
-		if (isInit){
+		if(isInit){
 			serial::log("Already init: APIC\n");
 			return;
 		}
 
-		if (!acpi::madt || !acpi::madthdr){
+		if(!acpi::madt || !acpi::madthdr){
 			serial::log("MADT table not found!\n");
 			return;
 		}
