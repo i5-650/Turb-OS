@@ -11,14 +11,14 @@ namespace turbo::heap {
 	// aligned in memory + the functions aren't really stored in
 	// the struct, that's why we will use struct here
 	struct HeapSegmentHeader {
-		size_t lenght;
+		size_t length;
 		struct HeapSegmentHeader *nextSegment;
 		struct HeapSegmentHeader *lastSegment;
 		bool isFree;
 		void mergeCurrentNextToLast();
 		void mergeCurrentToLast();
 		void mergeNextToCurrent();
-		void split(size_t lenght); 
+		void split(size_t length); 
 	};
 
 	extern bool isInit;
@@ -41,7 +41,7 @@ namespace turbo::heap {
 	void *realloc(void* ptr, size_t size);
 	void free(void* address);
 
-	void expandHeap(size_t lenght);
+	void expandHeap(size_t length);
 }
 
 void *operator new(size_t size);

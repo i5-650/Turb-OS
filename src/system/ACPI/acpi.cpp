@@ -10,8 +10,8 @@
 
 using namespace turbo;
 
-[[gnu::always_inline]] inline bool is_canonical(uint64_t address){
-	return ((address <= 0x00007FFFFFFFFFFF) || ((address >= 0xFFFF800000000000) && (address <= 0xFFFFFFFFFFFFFFFF)));
+[[gnu::always_inline]] inline bool is_canonical(uint64_t addr){
+    return ((addr <= 0x00007FFFFFFFFFFF) || ((addr >= 0xFFFF800000000000) && (addr <= 0xFFFFFFFFFFFFFFFF)));
 }
 
 namespace turbo::acpi {
@@ -20,13 +20,13 @@ namespace turbo::acpi {
 	bool madt = false;
 
 	bool useXSTD;
-	struct RSDP *rsdp;
+	RSDP *rsdp;
 
-	struct MCFGHeader *mcfghdr;
-	struct MADTHeader *madthdr;
-	struct FADTHeader *fadthdr;
-	struct HPETHeader *hpethdr;
-	struct SDTHeader *rsdt;
+	MCFGHeader *mcfghdr;
+	MADTHeader *madthdr;
+	FADTHeader *fadthdr;
+	HPETHeader *hpethdr;
+	SDTHeader *rsdt;
 
 	TurboVector<MADTLapic*> lapics;
 	TurboVector<MADTIOApic*> ioapics;
@@ -47,6 +47,7 @@ namespace turbo::acpi {
 	uintptr_t lapicAddress = 0;
 
 	void madtInit(){
+		serial::newline();
 
 		lapics.init(1);
 		ioapics.init(1);
@@ -55,8 +56,8 @@ namespace turbo::acpi {
 
 		lapicAddress = madthdr->localControllerAddress;
 		
-		for (uint8_t *madt_ptr = (uint8_t*)madthdr->entriesBegin; (uintptr_t)madt_ptr < (uintptr_t)madthdr + madthdr->sdt.length; madt_ptr += *(madt_ptr + 1)){
-			switch (*(madt_ptr)){
+		for(uint8_t *madt_ptr = (uint8_t*)madthdr->entriesBegin; (uintptr_t)madt_ptr < (uintptr_t)madthdr + madthdr->sdt.length; madt_ptr += *(madt_ptr + 1)){
+			switch(*(madt_ptr)){
 				case 0:
 					serial::log("ACPI/MADT: Found local APIC %ld", lapics.getLength());
 					lapics.push_back((MADTLapic*)madt_ptr);
@@ -85,33 +86,32 @@ namespace turbo::acpi {
 	}
 
 	void dsdtInit(){
-		uint64_t dsdtaddress = ((is_canonical(fadthdr->X_Dsdt) && useXSTD) ? fadthdr->X_Dsdt : fadthdr->Dsdt);
-		uint8_t *S5Address = (uint8_t*)dsdtaddress + 36;
-		uint64_t dsdtlength = ((SDTHeader*)dsdtaddress)->length;
+		uint64_t dsdtaddr = ((is_canonical(fadthdr->X_Dsdt) && useXSTD) ? fadthdr->X_Dsdt : fadthdr->Dsdt);
+		uint8_t *S5Addr = (uint8_t*)dsdtaddr + 36;
+		uint64_t dsdtlength = ((SDTHeader*)dsdtaddr)->length;
 
-		dsdtaddress *= 2;
-
-		while (dsdtlength-- > 0){
-			if(!memcmp(S5Address, "_S5_", 4)){
+		dsdtaddr *= 2;
+		while(dsdtlength-- > 0){
+			if(!memcmp(S5Addr, "_S5_", 4)){
 				break;
 			}
-			S5Address++;
+			S5Addr++;
 		}
 
 		if(dsdtlength <= 0){
-			serial::log("_S5 not present => shutdown may not work");
+			serial::log("_S5 not present in ACPI");
 			return;
 		}
 
-		if ((*(S5Address - 1) == 0x8 || (*(S5Address - 2) == 0x8 && *(S5Address - 1) == '\\')) && *(S5Address + 4) == 0x12){
-			S5Address += 5;
-			S5Address += ((*S5Address & 0xC0) >> 6) + 2;
+		if((*(S5Addr - 1) == 0x8 || (*(S5Addr - 2) == 0x8 && *(S5Addr - 1) == '\\')) && *(S5Addr + 4) == 0x12){
+			S5Addr += 5;
+			S5Addr += ((*S5Addr & 0xC0) >> 6) + 2;
 
-			if (*S5Address == 0xA){
-				S5Address++;
+			if(*S5Addr == 0xA){
+				S5Addr++;
 			}
 
-			SLP_TYPb = *(S5Address) << 10;
+			SLP_TYPb = *(S5Addr) << 10;
 			SMI_CMD = (uint32_t*)((uintptr_t)fadthdr->SMI_CommandPort);
 
 			ACPI_ENABLE = fadthdr->AcpiEnable;
@@ -127,8 +127,9 @@ namespace turbo::acpi {
 
 			return;
 		}
-		serial::log("[!!] Failed to parse _S5 => shutdown may not work");
 
+		serial::log("Failed to parse _S5 in ACPI");
+		serial::log("ACPI shutdown may not be possible");
 		SCI_EN = 0;
 	}
 
@@ -136,20 +137,20 @@ namespace turbo::acpi {
 		if (SCI_EN == 1){
 			outw(fadthdr->PM1aControlBlock, (inw(fadthdr->PM1aControlBlock) & 0xE3FF) | ((SLP_TYPa << 10) | ACPI_SLEEP));
 			
-			if (fadthdr->PM1bControlBlock){
+			if(fadthdr->PM1bControlBlock){
 				outw(fadthdr->PM1bControlBlock, (inw(fadthdr->PM1bControlBlock) & 0xE3FF) | ((SLP_TYPb << 10) | ACPI_SLEEP));
 			}
 			
 			outw(PM1a_CNT, SLP_TYPa | SLP_EN);
 			
-			if (PM1b_CNT){
+			if(PM1b_CNT){
 				outw(PM1b_CNT, SLP_TYPb | SLP_EN);
 			}
 		}
 	}
 
 	void reboot(){
-		switch (fadthdr->ResetReg.addressSpace){
+		switch(fadthdr->ResetReg.addressSpace){
 			case ACPI_GAS_MMIO:
 				*((uint8_t*)((uintptr_t)fadthdr->ResetReg.address)) = fadthdr->ResetValue;
 				break;
@@ -164,16 +165,16 @@ namespace turbo::acpi {
 		}
 	}
 
-	void *findTable(const char *signature, size_t skip)
-	{
+	void *findtable(const char *signature, size_t skip){
 		if(skip < 0){
 			skip = 0;
 		}
 		
 		size_t entries = (rsdt->length - sizeof(SDTHeader)) / (useXSTD ? 8 : 4);
-
+		
 		for(size_t i = 0; i < entries; i++){
 			SDTHeader *newsdthdr;
+
 			if(useXSTD){
 				newsdthdr = (SDTHeader*)*(uint64_t*)((uint64_t)rsdt + sizeof(SDTHeader) + (i * 8));
 			}
@@ -181,15 +182,15 @@ namespace turbo::acpi {
 				newsdthdr = (SDTHeader*)((uintptr_t)*(uint32_t*)((uint32_t)((uintptr_t)rsdt) + sizeof(SDTHeader) + (i * 4)));
 			}
 			
-			if (!newsdthdr || !strcmp((const char*)newsdthdr->signature, "")){
+			if(!newsdthdr || !strcmp((const char*)newsdthdr->signature, "")){
 				continue;
 			}
 
-			if (!strncmp((const char*)newsdthdr->signature, signature, 4)){
-				if (!skip){
+			if(!strncmp((const char*)newsdthdr->signature, signature, 4)){
+				if(!skip){
 					return newsdthdr;
 				}
-				else {
+				else{
 					skip--;
 				}
 			}
@@ -200,46 +201,44 @@ namespace turbo::acpi {
 		return 0;
 	}
 
-	void init()
-	{
-		serial::log("[+] Initialising ACPI");
+	void init(){
+		serial::log("Initialising ACPI");
 
-		if (isInit){
-			serial::log("[!!] Already init: ACPI\n");
+		if(isInit){
+			serial::log("ACPI has already been isInit!\n");
 			return;
 		}
 
 		rsdp = (RSDP*)rsdp_tag->rsdp;
 
-		if (rsdp->revision >= 2 && rsdp->xsdtaddress){
+		if(rsdp->revision >= 2 && rsdp->xsdtaddress){
 			useXSTD = true;
 			rsdt = (SDTHeader*)rsdp->xsdtaddress;
-			serial::log("[*] Found XSDT at: 0x%X", rsdp->xsdtaddress);
+			serial::log("Found XSDT at: 0x%X", rsdp->xsdtaddress);
 		}
 		else{
 			useXSTD = false;
 			rsdt = (SDTHeader*)((uintptr_t)rsdp->rsdtaddress);
-			serial::log("[*] Found RSDT at: 0x%X", rsdp->rsdtaddress);
+			serial::log("Found RSDT at: 0x%X", rsdp->rsdtaddress);
 		}
 
-		mcfghdr = (MCFGHeader*)findTable("[*] MCFG", 0);
-		madthdr = (MADTHeader*)findTable("[*] APIC", 0);
+		mcfghdr = (MCFGHeader*)findtable("MCFG", 0);
+		madthdr = (MADTHeader*)findtable("APIC", 0);
 		
-		if (madthdr){
+		if(madthdr){
 			madt = true;
 		}
-
-		fadthdr = (FADTHeader*)findTable("[*] FACP", 0);
-		hpethdr = (HPETHeader*)findTable("[*] HPET", 0);
+		
+		fadthdr = (FADTHeader*)findtable("FACP", 0);
+		hpethdr = (HPETHeader*)findtable("HPET", 0);
 
 		outb(fadthdr->SMI_CommandPort, fadthdr->AcpiEnable);
+		while(!(inw(fadthdr->PM1aControlBlock) & 1));
 
-		while (!(inw(fadthdr->PM1aControlBlock) & 1));
-
-		if (madt){
+		if(madt){
 			madtInit();
 		}
-
+		
 		dsdtInit();
 
 		serial::newline();
