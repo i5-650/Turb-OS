@@ -13,11 +13,17 @@ namespace turbo::shell{
             case hash("turbo"):
                 printf("https://www.instagram.com/http.doggyboys.fr/\n");
                 break;
+
             case hash("help"):
                 printf("All the listed command are not totally implement !\n");
                 printf("-turbo --Display the link to access to the Instagram account of the DoggyBoys !\n");
                 printf("-help --Display all the implement commands and future implemented command !\n");
                 break;
+
+            default:
+                printf("NEVER GONNA GIVE YOU UP, ");
+                printf("NEVER GONNA LET YOU DOWN\n");
+                printf("YOU DIDN'T TYPE A KNOWN COMMAND\n");
         }
     }
 
