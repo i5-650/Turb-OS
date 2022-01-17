@@ -5,6 +5,8 @@
 #include <lib/string.hpp>
 #include <drivers/display/serial/serial.hpp>
 #include <apps/turboShell.hpp>
+#include <lib/panic.hpp>
+#include <system/ACPI/acpi.hpp>
 
 namespace turbo::shell{
 
@@ -19,6 +21,12 @@ namespace turbo::shell{
                 printf("-turbo --Display the link to access to the Instagram account of the DoggyBoys !\n");
                 printf("-help --Display all the implement commands and future implemented command !\n");
                 break;
+
+            case hash("BOUM"):
+                PANIC("JE PANIQUE !!!");
+
+            case hash("reboot"):
+                acpi::reboot();
 
             default:
                 printf("NEVER GONNA GIVE YOU UP, ");
