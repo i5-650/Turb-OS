@@ -5,6 +5,7 @@
 #include <lib/string.hpp>
 #include <drivers/display/serial/serial.hpp>
 #include <apps/turboShell.hpp>
+#include <system/ACPI/acpi.hpp>
 
 namespace turbo::shell{
 
