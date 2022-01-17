@@ -19,6 +19,7 @@
 #include <system/CPU/APIC/apic.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <apps/turboShell.hpp>
+#include <system/CPU/scheduling/HPET/hpet.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -140,6 +141,11 @@ namespace turbo {
 		turbo::terminal::check("Initialising PS/2 Mouse...");
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
+
+		turbo::terminal::check("Initilialising HPET...");
+		turbo::hpet::init();
+		turbo::terminal::okerr(turbo::hpet::isInit);
+
 
 		turbo::shell::run();
 

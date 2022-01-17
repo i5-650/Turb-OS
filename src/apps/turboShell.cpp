@@ -6,6 +6,8 @@
 #include <drivers/display/serial/serial.hpp>
 #include <apps/turboShell.hpp>
 #include <system/ACPI/acpi.hpp>
+#include <stddef.h>
+
 
 namespace turbo::shell{
 
@@ -14,18 +16,31 @@ namespace turbo::shell{
             case hash("turbo"):
                 printf("https://www.instagram.com/http.doggyboys.fr/\n");
                 break;
+
             case hash("help"):
                 printf("All the listed command are not totally implement !\n");
                 printf("-turbo --Display the link to access to the Instagram account of the DoggyBoys !\n");
                 printf("-help --Display all the implement commands and future implemented command !\n");
+                break;
+
+            case hash(""):
+                break;
+
+            default:
+                printf("NEVER GONNA GIVE YOU UP, NEVER GONNA LET YOU DOWN !\n");
+                printf("Unknown command\n");
                 break;
         }
     }
 
     void run(){
         turbo::serial::log("Starting the TurboShell ! \n");
-        while (true)
-        {
+
+        printf("Press enter to begin...");
+        turbo::keyboard::getLine();
+        parse(nullptr);
+        
+        while (true){
             printf("root@turboShell: ");
             char *command = turbo::keyboard::getLine();
             parse(command);
