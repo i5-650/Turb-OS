@@ -144,9 +144,6 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		printf("NEVER GONNA GIVE YOU UP\n");
-		printf("NEVER GONNA LET YOU DOWN\n");
-
 		printf("Starting the TurboShell \n");
 		turbo::shell::run();
 		
