@@ -198,11 +198,6 @@ namespace turbo::keyboard {
 			if(pressed){
 				if(gi >= 1024 - 1){
 					printf("\nBuffer Overflow !");
-					enter = false;
-					reading = false;
-					gi = 0;
-					release_lock(getline_lock);
-					return nullptr;
 				}
 
 				retstr[gi] = getChar();

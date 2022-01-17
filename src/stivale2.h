@@ -368,8 +368,6 @@ struct stivale2_struct_tag_hhdm {
     uint64_t addr;
 };
 
-#define STIVALE2_STRUCT_TAG_TURBOSHELL_ID 
-
 #undef _stivale2_split64
 
 #endif

@@ -134,7 +134,7 @@ namespace turbo::acpi {
 	}
 
 	void shutdown(){
-		if(SCI_EN == 1){
+		if (SCI_EN == 1){
 			outw(fadthdr->PM1aControlBlock, (inw(fadthdr->PM1aControlBlock) & 0xE3FF) | ((SLP_TYPa << 10) | ACPI_SLEEP));
 			
 			if(fadthdr->PM1bControlBlock){
