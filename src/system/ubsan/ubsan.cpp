@@ -3,7 +3,7 @@
 #include <drivers/display/serial/serial.hpp>
 
 static void printUBsan(const char* message, struct source_location location){
-	//turbo::serial::log("UBsan: %s\n\t%s file\n\t%d line\n\t%d column\n", message, location.file, location.line, location.column);
+	turbo::serial::log("UBsan: %s\n\t%s file\n\t%d line\n\t%d column\n", message, location.file, location.line, location.column);
 }
 
 extern "C" void __ubsan_handle_add_overflow(struct overflow_data *data){
