@@ -326,6 +326,7 @@ namespace turbo::heap {
 
 		struct HeapSegmentHeader* newSegment = reinterpret_cast<struct HeapSegmentHeader*>(heapEnd);
 		for(size_t i = 0; i < pageCount; ++i){
+			// TODO null pointer exception
 			vMemory::kernel_pagemap->mapMem((uint64_t)heapEnd, (uint64_t)pMemory::requestPage());
 			heapEnd = reinterpret_cast<void*>(reinterpret_cast<size_t>(heapEnd) + 0x1000);
 		}

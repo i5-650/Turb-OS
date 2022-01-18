@@ -179,6 +179,7 @@ namespace turbo::acpi {
 				newsdthdr = (SDTHeader*)*(uint64_t*)((uint64_t)rsdt + sizeof(SDTHeader) + (i * 8));
 			}
 			else{
+				// TODO missaligned pointers
 				newsdthdr = (SDTHeader*)((uintptr_t)*(uint32_t*)((uint32_t)((uintptr_t)rsdt) + sizeof(SDTHeader) + (i * 4)));
 			}
 			
