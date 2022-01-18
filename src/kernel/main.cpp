@@ -122,11 +122,11 @@ namespace turbo {
 		turbo::acpi::init();
 		turbo::terminal::okerr(acpi::isInit);
 
-		turbo::terminal::check("Initialising fucking PCI...");
+		turbo::terminal::check("Initialising PCI...");
 		turbo::pci::init();
 		turbo::terminal::okerr(pci::isInit);
 
-		turbo::terminal::check("Initialising fucking APIC...");
+		turbo::terminal::check("Initialising APIC...");
 		turbo::apic::init();
 		turbo::terminal::okerr(apic::isInit);
 
