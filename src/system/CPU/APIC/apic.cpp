@@ -7,18 +7,21 @@
 #include <system/CPU/IDT/idt.hpp>
 #include <system/CPU/APIC/apic.hpp>
 #include <system/ACPI/acpi.hpp>
+#include <system/CPU/scheduling/HPET/hpet.hpp>
+#include <lib/lock.hpp>
 
-using namespace turbo;
 
 namespace turbo::apic {
 	bool isInit = false;
 	static bool x2apic = false;
 	bool legacy = false;
+	static uint64_t tickCountInMS = 0;
 
 	static inline uint32_t reg2x2apic(uint32_t reg){
 		uint32_t x2apic_reg = 0;
 
-		if(reg == 0x310){
+		if(reg == INTERRUPT_COMMAND_REGISTER){
+			// 0x30 = begin of ICR
 			x2apic_reg = 0x30;
 		}
 		else{
@@ -51,6 +54,7 @@ namespace turbo::apic {
 			}
 		}
 
+		// 0x400 = max val
 		uint32_t nmi = 0x400 | vec;
 
 		if (flags & 2){
@@ -61,9 +65,11 @@ namespace turbo::apic {
 			nmi |= 1 << 15;
 		}
 		if (lint == 0){
+			// LVT Local Interrupt 0 register
 			lapicWrite(0x350, nmi);
 		}
 		else if (lint == 1){
+			// LVT Local Interrupt 1 register
 			lapicWrite(0x360, nmi);
 		}
 	}
@@ -85,6 +91,7 @@ namespace turbo::apic {
 		lapicWrite(0xF0, lapicRead(0xF0) | 0x100);
 		if (!x2apic){
 			lapicWrite(0xE0, 0xF0000000);
+			// read Int Request Register
 			lapicWrite(0xD0, lapicRead(0x20));
 		}
 		
@@ -166,13 +173,68 @@ namespace turbo::apic {
 			wrmsr(0x830, ((uint64_t)lapic_id << 32) | flags);
 		}
 		else{
-			lapicWrite(0x310, (lapic_id << 24));
+			lapicWrite(INTERRUPT_COMMAND_REGISTER, (lapic_id << 24));
 			lapicWrite(0x300, flags);
 		}
 	}
 
 	void endOfInterrupt(){
 		lapicWrite(0xB0, 0);
+	}
+
+	// if the timer is masked, we won't get the interrupt
+	void lapicTimerMask(bool isMasked){
+		if(isMasked){
+			lapicWrite(LVT_TIMER_REGISTER, lapicRead(LVT_TIMER_REGISTER) | (1 << 0x10));
+		}
+		else{
+			lapicWrite(LVT_TIMER_REGISTER, lapicRead(LVT_TIMER_REGISTER) & ~(1 << 0x10));
+		}
+	}
+
+	void lapicTimerInit(){
+		if(tickCountInMS == 0){
+			// devide configuration register
+			lapicWrite(DIVIDE_CONF_REGISTER, 0x03);
+			// initial count register
+			lapicWrite(INITIAL_COUNT_REGISTER, 0xFFFFFFFF);
+			lapicTimerMask(false);
+			// if we are too fast, it may creates issues
+			turbo::hpet::mSleep(1);
+			lapicTimerMask(true);
+			tickCountInMS = 0xFFFFFFFF - lapicRead(CURRENT_COUNT_REGISTER);
+		}
+	}
+
+	DEFINE_LOCK(lapicTimerLock);
+	void lapicOneShot(uint8_t vector, uint64_t mSeconds){
+		acquire_lock(lapicTimerLock);
+		lapicTimerInit();
+		// to have no interruption durint this part
+		lapicTimerMask(true);
+
+		lapicWrite(DIVIDE_CONF_REGISTER, 0x03);
+		lapicWrite(LVT_TIMER_REGISTER, (((lapicRead(LVT_TIMER_REGISTER) & ~(0x03 << 17)) | (0x00 << 17)) & 0xFFFFFF00) | vector);
+		lapicWrite(INITIAL_COUNT_REGISTER, (tickCountInMS * mSeconds));
+		
+		lapicTimerMask(false);
+		// we change mask to listen to interrupt
+		release_lock(lapicTimerLock);
+	}
+
+	void lapicPeriodoc(uint8_t vector, uint64_t mSeconds){
+		acquire_lock(lapicTimerLock);
+		lapicTimerInit();
+		// to have no interruption durint this part
+		lapicTimerMask(true);
+
+		lapicWrite(DIVIDE_CONF_REGISTER, 0x03);
+		lapicWrite(LVT_TIMER_REGISTER, (((lapicRead(LVT_TIMER_REGISTER) & ~(0x03 << 17)) | (0x01 << 17)) & 0xFFFFFF00) | vector);
+		lapicWrite(INITIAL_COUNT_REGISTER, (tickCountInMS * mSeconds));
+		
+		lapicTimerMask(false);
+		// we change mask to listen to interrupt
+		release_lock(lapicTimerLock);
 	}
 
 	uint16_t getSCIevent(){
@@ -208,7 +270,7 @@ namespace turbo::apic {
 		uint16_t event = getSCIevent();
 		if (event & ACPI_POWER_BUTTON){
 			acpi::shutdown();
-			// TODO : sleep 
+			turbo::hpet::mSleep(50);
 			outw(0xB004, 0x2000);
 			outw(0x604, 0x2000);
 			outw(0x4004, 0x3400);
