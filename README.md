@@ -35,3 +35,20 @@ or to go faster and use multiple cores
 ```
 make -j$(nproc --all)
 ```
+
+
+# TODO LIST
+
+- [x] minimal display
+- [x] dynamic allocation
+- [x] interruptions
+- [x] keyboard input (PS/2)
+- [x] mouse input (PS/2)
+- [x] SMP
+- [x] UBSAN
+- [x] serial debugging
+- [x] kernel panic
+- [x] HPET (not tested)
+- [] scheduler
+- [] VFS
+- [] THE small detail
