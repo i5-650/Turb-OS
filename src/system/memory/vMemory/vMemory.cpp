@@ -191,6 +191,7 @@ namespace turbo::vMemory {
 	}
 
 	void switchPagemap(Pagemap *pmap){
+		// TODO  null pointer exception
 		write_cr(3, reinterpret_cast<uint64_t>(pmap->PML4));
 	}
 
@@ -205,7 +206,7 @@ namespace turbo::vMemory {
 			turbo::serial::log("[!!] Already init: virtual memory\n");
 			return;
 		}
-
+		// TODO null pointer exception
 		kernel_pagemap->PML4 = (PTable*)read_cr(3);
 		//turbo::serial::log("so far so good");
 		switchPagemap(kernel_pagemap);
