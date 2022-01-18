@@ -7,6 +7,7 @@
 #include <apps/turboShell.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <stddef.h>
+#include <lib/panic.hpp>
 
 
 namespace turbo::shell{
@@ -14,7 +15,7 @@ namespace turbo::shell{
     void parse(char* cmd){
         switch(hash(cmd)){
             case hash("turbo"):
-                printf("https://www.instagram.com/http.doggyboys.fr/\n");
+                printf("2FAST4U\n");
                 break;
 
             case hash("help"):
@@ -24,6 +25,10 @@ namespace turbo::shell{
                 break;
 
             case hash(""):
+                break;
+                
+            case hash("panic"):
+                PANIC("WHAT IS THE PPROBLEM ?");
                 break;
 
             default:
