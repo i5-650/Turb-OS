@@ -2,6 +2,7 @@
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <drivers/display/serial/serial.hpp>
+#include <drivers/display/terminal/printf.h>
 
 
 namespace turbo::hpet{
@@ -31,7 +32,7 @@ namespace turbo::hpet{
 		}
 
 		hpet = (HPET*)(acpi::hpethdr->address.address);
-		clock = hpet->generalCapabilities >> 32;
+		clock = hpet->generalCapabilities >> 32; // divided by 2^32*
 
 		mmoutq(&hpet->generalConfiguration,0);
 		mmoutq(&hpet->mainCounterValue,0);
