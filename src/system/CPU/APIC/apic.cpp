@@ -208,7 +208,7 @@ namespace turbo::apic {
 
 	DEFINE_LOCK(lapicTimerLock);
 	void lapicOneShot(uint8_t vector, uint64_t mSeconds){
-		acquire_lock(lapicTimerLock);
+		lapicTimerLock.lock();
 		lapicTimerInit();
 		// to have no interruption durint this part
 		lapicTimerMask(true);
@@ -219,11 +219,11 @@ namespace turbo::apic {
 		
 		lapicTimerMask(false);
 		// we change mask to listen to interrupt
-		release_lock(lapicTimerLock);
+		lapicTimerLock.unlock();
 	}
 
 	void lapicPeriodoc(uint8_t vector, uint64_t mSeconds){
-		acquire_lock(lapicTimerLock);
+		lapicTimerLock.lock();
 		lapicTimerInit();
 		// to have no interruption durint this part
 		lapicTimerMask(true);
@@ -234,7 +234,7 @@ namespace turbo::apic {
 		
 		lapicTimerMask(false);
 		// we change mask to listen to interrupt
-		release_lock(lapicTimerLock);
+		lapicTimerLock.unlock();
 	}
 
 	uint16_t getSCIevent(){

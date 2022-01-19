@@ -22,7 +22,7 @@ namespace turbo::gdt {
 		{0x0000, 0, 0, 0x89, 0x00, 0}
 	};
 
-	DEFINE_LOCK(gdt_lock)
+	DEFINE_LOCK(gdt_lock);
 	bool isInit = false;
 	GDTDescriptor gdtDescriptor;
 	TSS *tss;
@@ -36,7 +36,7 @@ namespace turbo::gdt {
 	}
 
 	void reloadAll(int cpu){
-		acquire_lock(gdt_lock);
+		gdt_lock.lock();
 
 		uintptr_t base = (uintptr_t)&tss[cpu];
 
@@ -52,7 +52,7 @@ namespace turbo::gdt {
 		reloadGDT();
 		reloadTSS();
 
-		release_lock(gdt_lock);
+		gdt_lock.unlock();
 	}
 
 	void init(){

@@ -13,7 +13,7 @@
 namespace turbo::smp {
 	bool isInit = false;
 
-	DEFINE_LOCK(lockCPUSMP)
+	DEFINE_LOCK(lockCPUSMP);
 
 	volatile int cpusUp = 0;
 	cpu_t* cpus;
@@ -21,7 +21,7 @@ namespace turbo::smp {
 	extern "C" void InitSSE();
 
 	static void cpuInit(stivale2_smp_info* cpu){
-		acquire_lock(lockCPUSMP);
+		lockCPUSMP.lock();
 		turbo::gdt::reloadAll(cpu->lapic_id);
 		turbo::idt::reload();
 		turbo:vMemory::switchPagemap(turbo::vMemory::kernel_pagemap);
@@ -77,7 +77,7 @@ namespace turbo::smp {
 		cpusUp++;
 		turbo::serial::log("%ld", cpusUp);
 
-		release_lock(lockCPUSMP);
+		lockCPUSMP.unlock();
 
 		if(cpu->lapic_id != smp_tag->bsp_lapic_id){
 			if(turbo::apic::isInit){

@@ -11,7 +11,7 @@ using namespace turbo;
 
 namespace turbo::idt {
 
-	DEFINE_LOCK(idt_lock)
+	DEFINE_LOCK(idt_lock);
 	bool isInit = false;
 
 	idtEntry_t idt[256];
@@ -20,13 +20,13 @@ namespace turbo::idt {
 	intHandler_t interrupt_handlers[256];
 
 	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr){
-		idt[vector].offset_1       = (uint64_t)isr & 0xFFFF;
-		idt[vector].selector       = 0x28;
-		idt[vector].ist            = 0;
-		idt[vector].type_attr      = type_attr;
-		idt[vector].offset_2       = ((uint64_t)isr >> 16) & 0xFFFF;
-		idt[vector].offset_3       = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
-		idt[vector].zero           = 0;
+		idt[vector].offset_1 = (uint64_t)isr & 0xFFFF;
+		idt[vector].selector = 0x28;
+		idt[vector].ist = 0;
+		idt[vector].type_attr = type_attr;
+		idt[vector].offset_2 = ((uint64_t)isr >> 16) & 0xFFFF;
+		idt[vector].offset_3 = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
+		idt[vector].zero = 0;
 	}
 
 	void reload(){
@@ -45,7 +45,7 @@ namespace turbo::idt {
 			return;
 		}
 
-		acquire_lock(idt_lock);
+		idt_lock.lock();
 
 		idtr.limit = (uint16_t)sizeof(idtEntry_t) * 256 - 1;
 		idtr.base = (uintptr_t)&idt[0];
@@ -57,7 +57,7 @@ namespace turbo::idt {
 
 		serial::newline();
 		isInit = true;
-		release_lock(idt_lock);
+		idt_lock.unlock();
 	}
 
 	void registerInterruptHandler(uint8_t vector, intHandler_t handler){

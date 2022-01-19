@@ -8,7 +8,7 @@
 
 namespace turbo::terminal {
 
-	DEFINE_LOCK(lock)
+	DEFINE_LOCK(termLock);
 
 	uint16_t columns;
 	uint16_t rows;
@@ -29,9 +29,9 @@ namespace turbo::terminal {
 
 	#pragma region Print
 	void print(const char *string){
-		acquire_lock(lock);
+		termLock.lock();
 		write(string, strlen(string));
-		release_lock(lock);
+		termLock.unlock();
 	}
 
 	// to print intergers
@@ -87,9 +87,9 @@ namespace turbo::terminal {
 
 	#pragma region Clear
 	void reset(){
-		acquire_lock(lock);
+		termLock.lock();
 		write("", STIVALE2_TERM_FULL_REFRESH);
-		release_lock(lock);
+		termLock.unlock();
 	}
 
 	void clear(const char *ansii_colour){

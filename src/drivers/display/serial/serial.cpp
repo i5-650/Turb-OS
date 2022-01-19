@@ -14,7 +14,7 @@
 namespace turbo::serial {
 
 	bool isInit = false;
-	DEFINE_LOCK(lock)
+	DEFINE_LOCK(serialLock);
 
 	bool check(){
 		if(isInit){
@@ -49,23 +49,23 @@ namespace turbo::serial {
 
 	// to receive an unknown number of args
 	void serialPrintf(const char *fmt, ...){
-		acquire_lock(lock);
+		serialLock.lock();
 		va_list args;
 		va_start(args, fmt);
 		vfctprintf(&printc, nullptr, fmt, args);
 		va_end(args);
-		release_lock(lock);
+		serialLock.unlock();
 	}
 	
 	void log(const char *fmt, ...){
-		acquire_lock(lock);
+		serialLock.lock();
 		va_list args;
 		va_start(args, fmt);
 		vfctprintf(&printc, nullptr, "[LOG] ", args);
 		vfctprintf(&printc, nullptr, fmt, args);
 		vfctprintf(&printc, nullptr, "\n", args);
 		va_end(args);
-		release_lock(lock);
+		serialLock.unlock();
 	}
 
 	void newline(){

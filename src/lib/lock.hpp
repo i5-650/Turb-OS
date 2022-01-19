@@ -2,8 +2,13 @@
 
 #include <stddef.h>
 
-using lock_t = volatile bool;
-#define DEFINE_LOCK(name) static lock_t name;
 
-void acquire_lock(lock_t &lock);
-void release_lock(lock_t &lock);
+struct lock_t {
+    volatile bool locked = false;
+
+    void lock();
+    void unlock();
+    bool isLocked();
+};
+
+#define DEFINE_LOCK(name) static lock_t name
