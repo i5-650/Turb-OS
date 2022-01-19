@@ -146,6 +146,12 @@ namespace turbo {
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
 
+		for(int i = 0; i < 10; i ++){
+		printf("Heure : %ld \n", turbo::hpet::counter() );
+		turbo::hpet::mSleep(5);
+		}
+
+
 
 		turbo::shell::run();
 
