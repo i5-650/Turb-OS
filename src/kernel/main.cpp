@@ -20,6 +20,7 @@
 #include <system/ACPI/acpi.hpp>
 #include <apps/turboShell.hpp>
 #include <system/CPU/scheduling/HPET/hpet.hpp>
+#include <system/CPU/Scheduling/RTC/rtc.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -146,12 +147,7 @@ namespace turbo {
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
 
-		for(int i = 0; i < 10; i ++){
-			printf("Heure : %ld \n", turbo::hpet::counter() );
-			turbo::hpet::mSleep(5);
-		}
-
-
+		rtc::init();
 
 		turbo::shell::run();
 
