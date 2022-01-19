@@ -22,11 +22,13 @@ namespace turbo::hpet {
 	extern bool isInit;
 	extern HPET* hpet;
 
+	char* hour();
+
 	uint64_t counter();
 
 	void uSleep(uint64_t uSeconds);
 	void mSleep(uint64_t mSeconds);
-	void slepp(uint64_t seconds);
+	void sleep(uint64_t seconds);
 
 	void init();
 }
