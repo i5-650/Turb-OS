@@ -4,7 +4,9 @@
 
 namespace turbo::rtc{
 
-    int bcptobin(int value)// convert binary decimal to binary
+    void init();
+
+    int bcptobin(int value);// convert binary decimal to binary
 
     uint64_t dateToSeconds(uint64_t day, uint64_t month, uint64_t year);
 
@@ -22,8 +24,7 @@ namespace turbo::rtc{
     
     uint64_t epoch(); //return actual date in seconds
 
-    void sleep();
+    void sleep(uint64_t seconds);
 
-    char timestr[30];
-    char* getTime();
+    void getTime();
 }
