@@ -16,8 +16,6 @@ namespace turbo::hpet{
 		return nullptr;
 	}
 
-
-
 	uint64_t counter(){
 		return mminq(&hpet->mainCounterValue);
 	}
@@ -53,7 +51,6 @@ namespace turbo::hpet{
 
 		mmoutq(&hpet->generalConfiguration,0);
 		mmoutq(&hpet->mainCounterValue,0);
-		printf("%ld\n",counter());	
 		mmoutq(&hpet->generalConfiguration,1);
 
 		serial::newline();

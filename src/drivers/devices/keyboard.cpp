@@ -189,9 +189,9 @@ namespace turbo::keyboard {
 		return c[0];
 	}
 
-	DEFINE_LOCK(getline_lock)
+	DEFINE_LOCK(readLock);
 	char *getLine(){
-		acquire_lock(getline_lock);
+		readLock.lock();
 		reading = true;
 		memset(retstr, '\0', 1024);
 		while(!enter){
@@ -208,7 +208,7 @@ namespace turbo::keyboard {
 		enter = false;
 		reading = false;
 		gi = 0;
-		release_lock(getline_lock);
+		readLock.unlock();
 		return retstr;
 	}
 

@@ -19,7 +19,7 @@ namespace turbo::heap {
 
 	void *heapEnd;
 
-	DEFINE_LOCK(heap_lock)
+	DEFINE_LOCK(heap_lock);
 
 	void init(void* heapAddress, size_t pageCount){
 		serial::log("[+] Initialising Heap\n");
@@ -50,7 +50,7 @@ namespace turbo::heap {
 			return;
 		}
 
-		acquire_lock(heap_lock);
+		heap_lock.lock();
 
 		struct HeapSegmentHeader* header = (struct HeapSegmentHeader*)((uint64_t)address - sizeof(struct HeapSegmentHeader));
 		header->isFree = true;
@@ -75,13 +75,13 @@ namespace turbo::heap {
 
 		//serial::log("[RAM] Freeing %zu bytes\n", header->length + sizeof(struct HeapSegmentHeader));
 
-		release_lock(heap_lock);
+		heap_lock.unlock();
 	}
 
 	void* malloc(size_t size){
 		hasBeenInit();
 
-		acquire_lock(heap_lock);
+		heap_lock.lock();
 
 		if(size > pMemory::getFreeRam()){
 			serial::log("[!!] malloc: can't alloc this much\n");
@@ -110,7 +110,7 @@ namespace turbo::heap {
 					freeSize -= currentSegment->length + sizeof(struct HeapSegmentHeader);
 
 					//serial::log("[RAM] Allocating %zu bytes\n", size + sizeof(struct HeapSegmentHeader));
-					release_lock(heap_lock);
+					heap_lock.unlock();
 
 					return (void*)((uint64_t)currentSegment + sizeof(struct HeapSegmentHeader));
 				}
@@ -123,7 +123,7 @@ namespace turbo::heap {
 					usedSize += currentSegment->length + sizeof(struct HeapSegmentHeader);
 					freeSize -= currentSegment->length + sizeof(struct HeapSegmentHeader);
 
-					release_lock(heap_lock);
+					heap_lock.unlock();
 
 					return (void*)((uint64_t)currentSegment + sizeof(struct HeapSegmentHeader));
 				}
@@ -137,7 +137,7 @@ namespace turbo::heap {
 		}
 
 		expandHeap(size);
-		release_lock(heap_lock);
+		heap_lock.unlock();
 		
 		return malloc(size);
 	}

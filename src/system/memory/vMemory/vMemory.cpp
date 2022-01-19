@@ -11,7 +11,7 @@ namespace turbo::vMemory {
 
 	bool isInit = false;
 	Pagemap *kernel_pagemap = nullptr;
-	DEFINE_LOCK(VMemoryLock)
+	DEFINE_LOCK(VMemoryLock);
 
 	PTable* getNextLevel(PTable* currentLevel, size_t entry){
 		PTable* ret;
@@ -60,7 +60,7 @@ namespace turbo::vMemory {
 	}
 
 	void Pagemap::mapMem(uint64_t vaddress, uint64_t paddress, uint64_t flags){
-		acquire_lock(VMemoryLock);
+		VMemoryLock.lock();
 		size_t pml4_entry = (vaddress & ((uint64_t)0x1FF << 39)) >> 39;
 		size_t pml3_entry = (vaddress & ((uint64_t)0x1FF << 30)) >> 30;
 		size_t pml2_entry = (vaddress & ((uint64_t)0x1FF << 21)) >> 21;
@@ -75,10 +75,10 @@ namespace turbo::vMemory {
 		pml1->entries[pml1_entry].setAddress(paddress >> 12);
 		pml1->entries[pml1_entry].setFlags(flags, true);
 
-		release_lock(VMemoryLock);
+		VMemoryLock.unlock();
 	}
 	void Pagemap::remapMem(uint64_t vaddressOld, uint64_t vaddressNew, uint64_t flags){
-		acquire_lock(VMemoryLock);
+		VMemoryLock.lock();
 		uint64_t paddress = 0;
 
 		size_t pml4_entry = (vaddressOld & ((uint64_t)0x1FF << 39)) >> 39;
@@ -96,12 +96,12 @@ namespace turbo::vMemory {
 		pml1->entries[pml1_entry].value = 0;
 		asm volatile ("invlpg (%0)" :: "r"(vaddressOld));
 
-		release_lock(VMemoryLock);
+		VMemoryLock.unlock();
 		this->mapMem(vaddressNew, paddress, flags);
 	}
 
 	void Pagemap::unmapMem(uint64_t vaddress){
-		acquire_lock(VMemoryLock);
+		VMemoryLock.lock();
 
 		size_t pml4_entry = (vaddress & ((uint64_t)0x1FF << 39)) >> 39;
 		size_t pml3_entry = (vaddress & ((uint64_t)0x1FF << 30)) >> 30;
@@ -116,7 +116,7 @@ namespace turbo::vMemory {
 
 		pml1->entries[pml1_entry].value = 0;
 		asm volatile ("invlpg (%0)" :: "r"(vaddress));
-		release_lock(VMemoryLock);
+		VMemoryLock.unlock();
 	}
 
 	void Pagemap::mapUserMem(uint64_t vaddress, uint64_t paddress, uint64_t flags){
