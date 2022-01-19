@@ -124,11 +124,11 @@ iso:
 	$(LIMINE) $(ISO) 2> /dev/null || echo "\e[31mFailed to install limine!\e[0m"
 
 clean:
-ifndef NOCLEAN
+ifndef NOCLEAN	
 	rm -rf $(KERNEL) $(OBJ) $(HDR_DEPS) $(INITRD) $(SOURCEDIR)/../iso_root/* $(SOURCEDIR)/../null.d
 endif
 
 run:
 	echo "Turbooting \n"
-	echo $(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D $(SOURCEDIR)/../log.txt -machine smm=off -cdrom $(ISO)
+	echo $(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D log.txt -machine smm=off -cdrom image.iso
 	$(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D $(SOURCEDIR)/../log.txt -machine smm=off -cdrom $(ISO) | $(CXXFILT)
