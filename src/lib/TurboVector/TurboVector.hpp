@@ -86,6 +86,10 @@ public:
 		return this->length;
 	}
 
+	size_t size(){
+		return this->length();
+	}
+
 	size_t getCapacity(){
 		return this->capacity;
 	}
