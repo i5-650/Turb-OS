@@ -10,6 +10,7 @@
 #include <system/CPU/IDT/idt.hpp>
 #include <lib/lock.hpp>
 #include <lib/portIO.hpp>
+#include <lib/cpu/cpu.hpp>
 
 namespace turbo::serial {
 
@@ -72,7 +73,7 @@ namespace turbo::serial {
 		serialPrintf("\n");
 	}
 
-	static void COM1_Handler(idt::registers_t *){
+	static void COM1_Handler(registers_t *){
 		char c = read();
 		switch(c){
 			case 13:

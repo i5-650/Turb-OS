@@ -9,6 +9,7 @@
 #include <system/ACPI/acpi.hpp>
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <lib/lock.hpp>
+#include <lib/cpu/cpu.hpp>
 
 
 namespace turbo::apic {
@@ -266,7 +267,7 @@ namespace turbo::apic {
 		}
 	}
 
-	static void SCIHandler(idt::registers_t *){
+	static void SCIHandler(registers_t *){
 		uint16_t event = getSCIevent();
 		if (event & ACPI_POWER_BUTTON){
 			acpi::shutdown();
