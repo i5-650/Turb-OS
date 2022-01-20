@@ -222,7 +222,7 @@ namespace turbo::apic {
 		lapicTimerLock.unlock();
 	}
 
-	void lapicPeriodoc(uint8_t vector, uint64_t mSeconds){
+	void lapicPeriodic(uint8_t vector, uint64_t mSeconds){
 		lapicTimerLock.lock();
 		lapicTimerInit();
 		// to have no interruption durint this part

@@ -60,6 +60,8 @@ namespace turbo::idt {
 
 	void init();
 	void registerInterruptHandler(uint8_t vector, intHandler_t handler);
+	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr = 0x8E, uint8_t ist = 0);
 
 	extern "C" void int_handler(registers_t *regs);
+	extern "C" void* int_table[];
 }

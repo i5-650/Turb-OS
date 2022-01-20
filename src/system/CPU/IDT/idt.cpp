@@ -19,10 +19,10 @@ namespace turbo::idt {
 
 	intHandler_t interrupt_handlers[256];
 
-	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr){
+	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr, uint8_t ist){
 		idt[vector].offset_1 = (uint64_t)isr & 0xFFFF;
 		idt[vector].selector = 0x28;
-		idt[vector].ist = 0;
+		idt[vector].ist = ist;
 		idt[vector].type_attr = type_attr;
 		idt[vector].offset_2 = ((uint64_t)isr >> 16) & 0xFFFF;
 		idt[vector].offset_3 = ((uint64_t)isr >> 32) & 0xFFFFFFFF;

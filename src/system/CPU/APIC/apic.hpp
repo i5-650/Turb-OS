@@ -45,7 +45,7 @@ namespace turbo::apic {
 	void endOfInterrupt();
 
 	void lapicOneShot(uint8_t vector, uint64_t mSeconds = 1);
-	void lapicPeriodoc(uint8_t vector, uint64_t mSeconds = 1);
+	void lapicPeriodic(uint8_t vector, uint64_t mSeconds = 1);
 
 	void lapicInit(uint8_t processor_id);
 	void init();

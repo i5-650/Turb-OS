@@ -48,6 +48,8 @@ namespace turbo::scheduler {
     extern size_t processesCounter;
     extern size_t threadsCounter;
 
+    extern uint64_t timeSlice;
+
     // threads
     thread_t* allocThread(uint64_t address, uint64_t args);
     thread_t* createThread(uint64_t adress, uint64_t args, process_t* parent = nullptr);
@@ -59,10 +61,12 @@ namespace turbo::scheduler {
 
     void unblockThread(thread_t* thread);
 
-    // processes
+    void exitThread();
 
+
+    // processes
     process_t* allocProcess(const char* name, uint64_t address, uint64_t args);
-    process_t createProcess(const char* name, uint64_t address, uint64_t args);
+    process_t* createProcess(const char* name, uint64_t address, uint64_t args);
 
     process_t* getThisProcess();
 
@@ -71,11 +75,13 @@ namespace turbo::scheduler {
 
     void unblockProcess(process_t* process);
 
+    void exitProcess();
+
 
     // global
-    void switchTask();
-
+    void switchTask(registers_t* reg);
     void init();
+    void _yield(uint64_t mSeconds = 1);
 
 
     // basics gets

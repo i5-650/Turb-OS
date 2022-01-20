@@ -2,17 +2,26 @@
 
 #include <system/CPU/GDT/gdt.hpp>
 #include <stddef.h>
+#include <system/CPU/scheduling/scheduler/scheduler.hpp>
+
+
+using namespace turbo;
 
 namespace turbo::smp {
 
 	struct cpu_t {
 		uint64_t cpuID;
 		uint32_t lapicID;
-		turbo::gdt::TSS* tss;
+		gdt::TSS* tss;
+
 		size_t fpuStorageSize;
 		void (*fpuSave)(void*);
 		void (*fpuRestore)(void*);
+
 		volatile bool isUp;
+		scheduler::thread_t* currentThread;
+		scheduler::process_t* currentProcess;
+		scheduler::process_t* idleP;
 	};
 
 	extern cpu_t *cpus;

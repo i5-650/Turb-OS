@@ -130,4 +130,14 @@ public:
 			}
 		}
 	}
+
+	size_t find(T thing){
+		for(size_t index = 0; index < this->length; ++index){
+			if(data == (data + index)){
+				return index;
+			}
+		}
+
+		return -1;
+	}
 };
