@@ -16,6 +16,7 @@ using namespace turbo::heap;
 
 #define DEFAULT_TIMESLICE 5
 
+
 namespace turbo::scheduler {
     bool isInit = false;
     
@@ -301,40 +302,7 @@ namespace turbo::scheduler {
         }
     }
 
-    void subSuccess(thread_t* t, registers_t* reg){
-        t->state = RUNNING;
-        *reg = t->reg;
-        vMemory::switchPagemap(getThisProcess()->processPagemap);
-        serial::log("[RUNNING] p[%d]->thread[%d]: CPU%zu\n", getThisProcess()->PID - 1, getThisThread()->TID - 1, thisCPU->lapicID);
-        schedLock.unlock();
-        _yield(timeSlice);
-        return;
-
-    }
-
-    void subNoFree(process_t* p, thread_t* t, registers_t* reg){
-        cleanProcess(p);
-
-        if(thisCPU->currentProcess == nullptr){
-            thisCPU->idleP = allocProcess("IDLE", (uint64_t)_idle, 0);
-            threadsCounter--;
-        }
-
-        thisCPU->currentProcess = thisCPU->idleP;
-        thisCPU->currentThread = thisCPU->idleP->threads[0];
-        timeSlice = t->sliceOfTime;
-
-        t->state = RUNNING;
-        *reg  = t->reg;
-        vMemory::switchPagemap(p->processPagemap);
-
-        serial::log("[RUNNING] IDLE on CPU %zu", thisCPU->lapicID);
-
-        schedLock.unlock();
-        _yield();
-    }
-
-    void switchTask(idt::registers_t* reg){
+    void switchTask(registers_t* reg){
         if(isInit){
             return;
         }
@@ -363,7 +331,7 @@ namespace turbo::scheduler {
                     return;
                 }
             }
-            subNoFree(&getThisProcess(), &getThisThread(), reg);
+            subNoFree(getThisProcess(), getThisThread(), reg);
             return;
         }
         else {
@@ -415,7 +383,7 @@ namespace turbo::scheduler {
             }
         }
 
-        subNoFree(getThisProcess(), *getThisThread(), reg);
+        subNoFree(getThisProcess(), getThisThread(), reg);
         return;
     }
 
