@@ -2,8 +2,9 @@
 #include <stivale2.h>
 #include <stddef.h>
 #include <lib/cpu/cpu.hpp>
+#include <kernel/kernel.hpp>
 
-static uint8_t stack[8192];
+uint8_t kernelStack[STACK_SIZE] = {[0 ... STACK_SIZE - 1] = 'A'};
 
 static struct stivale2_header_tag_terminal terminal_hdr_tag = {
     .tag = {
@@ -33,12 +34,23 @@ static struct stivale2_header_tag_framebuffer framebuffer_hdr_tag = {
     .unused = 0
 };
 
+#if (LVL5_PAGING != 0)
+static struct stivale2_tag lvl5_hdr_tag = {
+    .identifier = STIVALE2_HEADER_TAG_5LV_PAGING_ID,
+    .next = reinterpret_cast<uint64_t>(&framebuffer_hdr_tag)
+};
+#endif
+
 [[gnu::section(".stivale2hdr"), gnu::used]]
 static struct stivale2_header stivale_hdr = {
     .entry_point = 0,
-    .stack = (uintptr_t)stack + sizeof(stack),
+    .stack = (uintptr_t)kernelStack + STACK_SIZE,
     .flags = (1 << 1) | (1 << 2) | (1 << 3) | (1 << 4),
-    .tags = (uintptr_t)&framebuffer_hdr_tag
+    #if(LV5_PAGING != 0)
+        .tags = (uintptr_t)&lvl5_hdr_tag
+    #else
+        .tags = (uintptr_t)&framebuffer_hdr_tag
+    #endif
 };
 
 void *stivale2_get_tag(stivale2_struct *stivale, uint64_t id){

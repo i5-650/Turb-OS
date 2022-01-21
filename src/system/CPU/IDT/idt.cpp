@@ -60,6 +60,11 @@ namespace turbo::idt {
 		idt_lock.unlock();
 	}
 
+	static uint8_t nextFree = 48;
+	uint8_t allocVector(){
+		return (++nextFree == SYSCALL ? ++nextFree : nextFree);
+	}
+
 	void registerInterruptHandler(uint8_t vector, intHandler_t handler){
 		interrupt_handlers[vector] = handler;
 		if(apic::isInit && vector > 31 && vector < 48){
