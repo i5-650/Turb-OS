@@ -20,7 +20,7 @@
 #include <system/ACPI/acpi.hpp>
 #include <apps/turboShell.hpp>
 #include <system/CPU/scheduling/HPET/hpet.hpp>
-#include <system/CPU/Scheduling/RTC/rtc.hpp>
+#include <system/CPU/scheduling/RTC/rtc.hpp>
 #pragma endregion include
 
 namespace turbo {
