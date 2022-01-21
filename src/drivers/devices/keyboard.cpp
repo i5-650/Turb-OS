@@ -9,6 +9,7 @@
 #include <lib/portIO.hpp>
 #include <system/memory/heap/heap.hpp>
 #include <system/ACPI/acpi.hpp>
+#include <lib/cpu/cpu.hpp>
 
 using namespace turbo::heap;
 
@@ -69,7 +70,7 @@ namespace turbo::keyboard {
 		}
 	}
 
-	static void Keyboard_Handler(turbo::idt::registers_t *){
+	static void Keyboard_Handler(registers_t *){
 		uint8_t scancode = inb(0x60);
 
 		if(scancode & 0x80){

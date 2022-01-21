@@ -20,6 +20,8 @@
 #include <system/ACPI/acpi.hpp>
 #include <apps/turboShell.hpp>
 #include <system/CPU/scheduling/HPET/hpet.hpp>
+#include <system/CPU/scheduling/RTC/rtc.hpp>
+#include <system/CPU/scheduling/scheduler/scheduler.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -146,8 +148,17 @@ namespace turbo {
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
 
+		rtc::init();
+		printf("good\n");
 
 		turbo::shell::run();
+		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
+
+		printf("good2\n");
+		//turbo::shell::run();
+
+		scheduler::init();
+		printf("good3\n");
 
 	}
 }

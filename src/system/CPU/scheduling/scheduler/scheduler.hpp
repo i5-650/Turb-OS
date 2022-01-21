@@ -92,4 +92,33 @@ namespace turbo::scheduler {
     static inline int getTID(){
         return getThisThread()->TID;
     }
+
+    #define subSuccess(t, reg) \
+    ({ \
+        t->state = RUNNING;\
+        *reg = t->reg;\
+        vMemory::switchPagemap(getThisProcess()->processPagemap);\
+        serial::log("[RUNNING] p[%d]->thread[%d]: CPU%zu\n", getThisProcess()->PID - 1, getThisThread()->TID - 1, thisCPU->lapicID);\
+        schedLock.unlock();\
+        _yield(timeSlice);\
+        return;\
+    })
+
+    #define subNoFree(p, t, reg) \
+    ({\
+        cleanProcess(p);\
+        if(thisCPU->currentProcess == nullptr){\
+            thisCPU->idleP = allocProcess("IDLE", (uint64_t)_idle, 0);\
+            threadsCounter--;\
+        }\
+        thisCPU->currentProcess = thisCPU->idleP;\
+        thisCPU->currentThread = thisCPU->idleP->threads[0];\
+        timeSlice = t->sliceOfTime;\
+        t->state = RUNNING;\
+            *reg  = t->reg;\
+            vMemory::switchPagemap(p->processPagemap);\
+            serial::log("[RUNNING] IDLE on CPU %zu", thisCPU->lapicID);\
+            schedLock.unlock();\
+            _yield();\
+    })
 }
