@@ -4,6 +4,7 @@
 #include <drivers/display/serial/serial.hpp>
 #include <system/CPU/IDT/idt.hpp>
 #include <lib/portIO.hpp>
+#include <lib/cpu/cpu.hpp>
 
 using namespace turbo;
 
@@ -248,7 +249,7 @@ namespace turbo::mouse {
 		oldPosition = position;
 	}
 
-	static void Mouse_Handler(idt::registers_t *){
+	static void Mouse_Handler(registers_t *){
 		uint8_t mousedata = inb(0x60);
 
 		proccessPacket();

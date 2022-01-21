@@ -1,5 +1,5 @@
-*.iso
+image.iso
 limine/
-*.img
-*.txt
+disk.img
+log.txt
 

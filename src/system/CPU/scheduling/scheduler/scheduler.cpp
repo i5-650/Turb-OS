@@ -10,11 +10,12 @@
 #include <lib/lock.hpp>
 #include <system/memory/heap/heap.hpp>
 #include <lib/panic.hpp>
-
+#include <drivers/display/terminal/printf.h>
 using namespace turbo;
 using namespace turbo::heap;
 
 #define DEFAULT_TIMESLICE 5
+
 
 namespace turbo::scheduler {
     bool isInit = false;
@@ -56,7 +57,7 @@ namespace turbo::scheduler {
     thread_t* allocThread(uint64_t address, uint64_t args){
         threadLock.lock();
 
-        thread_t* myThread = new thread_t;
+        thread_t* myThread = (thread_t*)malloc(sizeof(thread_t));
 
         myThread->state = INITIAL_STATE;
         myThread->threadStack = (uint8_t*)malloc(STACK_SIZE);
@@ -301,41 +302,8 @@ namespace turbo::scheduler {
         }
     }
 
-    void subSuccess(thread_t* t, registers_t* reg){
-        t->state = RUNNING;
-        *reg = t->reg;
-        vMemory::switchPagemap(getThisProcess()->processPagemap);
-        serial::log("[RUNNING] p[%d]->thread[%d]: CPU%zu\n", getThisProcess()->PID - 1, getThisThread()->TID - 1, thisCPU->lapicID);
-        schedLock.unlock();
-        _yield(timeSlice);
-        return;
-
-    }
-
-    void subNoFree(process_t* p, thread_t* t, registers_t* reg){
-        cleanProcess(p);
-
-        if(thisCPU->currentProcess == nullptr){
-            thisCPU->idleP = allocProcess("IDLE", (uint64_t)_idle, 0);
-            threadsCounter--;
-        }
-
-        thisCPU->currentProcess = thisCPU->idleP;
-        thisCPU->currentThread = thisCPU->idleP->threads[0];
-        timeSlice = t->sliceOfTime;
-
-        t->state = RUNNING;
-        *reg  = t->reg;
-        vMemory::switchPagemap(p->processPagemap);
-
-        serial::log("[RUNNING] IDLE on CPU %zu", thisCPU->lapicID);
-
-        schedLock.unlock();
-        _yield();
-    }
-
-    void switchTask(idt::registers_t* reg){
-        if(isInit){
+    void switchTask(registers_t* reg){
+        if(!isInit){
             return;
         }
 
@@ -363,7 +331,7 @@ namespace turbo::scheduler {
                     return;
                 }
             }
-            subNoFree(&getThisProcess(), &getThisThread(), reg);
+            subNoFree(getThisProcess(), getThisThread(), reg);
             return;
         }
         else {
@@ -415,20 +383,21 @@ namespace turbo::scheduler {
             }
         }
 
-        subNoFree(getThisProcess(), *getThisThread(), reg);
+        subNoFree(getThisProcess(), getThisThread(), reg);
         return;
     }
 
     bool isIDTInit = false;
 
     void init(){
+        printf("here 1\n");
         while(!isInit){
             asm volatile("hlt");
         }
-
+        printf("here 2\n");
         if(apic::isInit){
             if(schedulerVector == 0){
-                schedulerVector = 48;
+                schedulerVector = idt::allocVector();
                 if(!isIDTInit){
                     idt::registerInterruptHandler(schedulerVector, switchTask);
                     idt::idtSetDescriptor(schedulerVector, idt::int_table[schedulerVector], 0x8E, 1);
