@@ -391,6 +391,9 @@ namespace turbo::scheduler {
 
     void init(){
         printf("here 1\n");
+        while(!isInit){
+            asm volatile("hlt");
+        }
         printf("here 2\n");
         if(apic::isInit){
             if(schedulerVector == 0){
@@ -409,6 +412,9 @@ namespace turbo::scheduler {
                 idt::idtSetDescriptor(schedulerVector, idt::int_table[idt::IRQ0], 0x8E, 1);
                 isIDTInit = true;
             }
+        }
+        while(true){
+            asm volatile("hlt");
         }
     }   
 }
