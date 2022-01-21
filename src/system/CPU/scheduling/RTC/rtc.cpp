@@ -1,4 +1,4 @@
-#include <system/CPU/Scheduling/RTC/rtc.hpp>
+#include <system/CPU/scheduling/RTC/rtc.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <lib/portIO.hpp>
 #include <drivers/display/terminal/printf.h>
