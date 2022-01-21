@@ -10,7 +10,7 @@
 #include <lib/lock.hpp>
 #include <system/memory/heap/heap.hpp>
 #include <lib/panic.hpp>
-
+#include <drivers/display/terminal/printf.h>
 using namespace turbo;
 using namespace turbo::heap;
 
@@ -57,7 +57,7 @@ namespace turbo::scheduler {
     thread_t* allocThread(uint64_t address, uint64_t args){
         threadLock.lock();
 
-        thread_t* myThread = new thread_t;
+        thread_t* myThread = (thread_t*)malloc(sizeof(thread_t));
 
         myThread->state = INITIAL_STATE;
         myThread->threadStack = (uint8_t*)malloc(STACK_SIZE);
@@ -303,7 +303,7 @@ namespace turbo::scheduler {
     }
 
     void switchTask(registers_t* reg){
-        if(isInit){
+        if(!isInit){
             return;
         }
 
@@ -390,13 +390,11 @@ namespace turbo::scheduler {
     bool isIDTInit = false;
 
     void init(){
-        while(!isInit){
-            asm volatile("hlt");
-        }
-
+        printf("here 1\n");
+        printf("here 2\n");
         if(apic::isInit){
             if(schedulerVector == 0){
-                schedulerVector = 48;
+                schedulerVector = idt::allocVector();
                 if(!isIDTInit){
                     idt::registerInterruptHandler(schedulerVector, switchTask);
                     idt::idtSetDescriptor(schedulerVector, idt::int_table[schedulerVector], 0x8E, 1);
@@ -411,9 +409,6 @@ namespace turbo::scheduler {
                 idt::idtSetDescriptor(schedulerVector, idt::int_table[idt::IRQ0], 0x8E, 1);
                 isIDTInit = true;
             }
-        }
-        while(true){
-            asm volatile("hlt");
         }
     }   
 }

@@ -5,6 +5,7 @@
 #include <lib/memory/memory.hpp>
 #include <lib/lock.hpp>
 #include <system/CPU/SMP/smp.hpp>
+#include <kernel/kernel.hpp>
 
 namespace turbo::gdt {
 
@@ -69,6 +70,7 @@ namespace turbo::gdt {
 		gdtDescriptor.offset = (uint64_t)&DefaultGDT;
 
 		reloadAll(smp_tag->bsp_lapic_id);
+		tss[0].RSP[0] = (uint64_t)kernelStack;
 
 		serial::newline();
 		isInit = true;

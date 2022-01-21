@@ -147,8 +147,15 @@ namespace turbo {
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
 
+		printf("good\n");
+
 		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
+
+		printf("good2\n");
 		//turbo::shell::run();
+
+		scheduler::init();
+		printf("good3\n");
 
 	}
 }
