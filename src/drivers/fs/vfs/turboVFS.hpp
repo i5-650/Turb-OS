@@ -13,8 +13,8 @@ namespace turbo::vfs{
         TFS_FOLDER = 0x02, //Flags to define it's a folder
         TFS_PATHDEVICE = 0x03, //Reference to the path of the device
         TFS_BLOCKDEVICE = 0x04, //Reference to the memory allocated to this block
-        TFS_PIPE = 0x06, //Reference to the maximum size of a pipe
-        TFS_SYMLINK = 0x07, //Reference the link path with a symbolic link pointing to the original path
+        TFS_PIPE = 0x05, //Reference to the maximum size of a pipe
+        TFS_SYMLINK = 0x06, //Reference the link path with a symbolic link pointing to the original path
         TFS_MOUNTPOINT = 0x08 //Reference the parent directory accessible 
     };
 
