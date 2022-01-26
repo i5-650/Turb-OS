@@ -6,7 +6,7 @@
 
 namespace turbo::vfs{
     
-    bool isInitialised = false;
+    bool isInit = false;
     bool debug = false;
     tfs_node_t *tfs_root;
 
@@ -67,7 +67,24 @@ namespace turbo::vfs{
                 items--;
                 createNext(parentNode,childNode,items,cleared,pathArray);
             }
+            if(!strcmp(pathArray[cleared],".")){
+                if(items > 1){
+                    parentNode = parentNode->parent;
+                }else{
+                    childNode = parentNode->parent;
+                }
+                cleared++;
+                items--;
+                createNext(parentNode,childNode,items,cleared,pathArray);
+            }
+            if(items > 1){ parentNode = addChild(parentNode,pathArray[cleared]);}
+            else{ childNode = addChild(parentNode,pathArray[cleared]);}
+
+            cleared++;
+            items--;
         }
+        vfs_lock.unlock();
+        return childNode;
     }
 
     void *notFound(){
@@ -241,5 +258,49 @@ namespace turbo::vfs{
             pathArray++;
         }
         while(!strcmp(pathArray[items-1],"")){ items--; }
+
+        createNext(parentNode,childNode,items,cleared,pathArray);
+    }
+
+    tfs_node_t *open_root(tfs_node_t *parent,const char *path){
+        if((parent == nullptr || parent == tfs_root) && !strcmp(path,"/")){ return tfs_root->ptr; }
+        tfs_node_t *node = open(parent,path);
+        if(!node){ node = create(parent,path);}
+        return node;
+    }
+
+    tfs_node_t *mount_root(tfs_t *fs){
+        tfs_node_t *node = addChild(tfs_root,"/");
+        tfs_root->ptr = node;
+        node->flags = TFS_FOLDER;
+        node->fs = fs;
+        return node;
+    }
+
+    tfs_node_t *mount(tfs_t *fs, tfs_node_t *parent, const char *path){
+    if (!tfs_root->ptr) mount_root(0);
+    if (!parent) parent = tfs_root->ptr;
+    if (!fs) fs = parent->fs;
+    parent->ptr = create(parent, path);
+    parent->flags = TFS_MOUNTPOINT;
+    parent->ptr->flags = TFS_FOLDER;
+    parent->ptr->fs = fs;
+    return parent->ptr;
+    }
+
+    void init(){
+        turbo::serial::log("[!]-Installing the VFS");
+        if(isInit){
+            turbo::serial::log("[!]-Warning VFS ALREADY INITIALISED");
+            return;
+        }
+
+        tfs_root = new tfs_node_t;
+        tfs_root->flags = filetypes::TFS_MOUNTPOINT;
+        strcpy(tfs_root->name,ROOTNAME);
+        tfs_root->fs = nullptr;
+
+        turbo::serial::newline();
+        isInit = true;
     }
 }
