@@ -6,6 +6,7 @@
 #include <system/memory/heap/heap.hpp>
 #include <lib/TurboVector/TurboVector.hpp>
 #include <system/memory/vMemory/vMemory.hpp>
+#include <drivers/fs/vfs/turboVFS.hpp>
 
 using namespace turbo;
 
@@ -40,6 +41,7 @@ namespace turbo::scheduler {
         TurboVector<process_t*> children;
         process_t* parent;
         vMemory::Pagemap* processPagemap;
+        turbo::vfs::tfs_node_t *current_dir;
     };
 
     extern bool isInit;
