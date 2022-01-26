@@ -46,7 +46,6 @@ namespace turbo::shell{
 
         printf("Press enter to begin...");
         turbo::keyboard::getLine();
-        parse(nullptr,nullptr);
 
         while(true){
             if(!currentPath){
