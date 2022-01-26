@@ -13,6 +13,8 @@
 
 
 namespace turbo::shell{
+    
+    turbo::vfs::tfs_node_t *currentPath;
 
     turbo::vfs::tfs_node_t *currentPath;
 
