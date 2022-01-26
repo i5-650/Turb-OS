@@ -11,6 +11,8 @@
 #include <system/memory/heap/heap.hpp>
 #include <lib/panic.hpp>
 #include <drivers/display/terminal/printf.h>
+#include <drivers/fs/vfs/turboVFS.hpp>
+
 using namespace turbo;
 using namespace turbo::heap;
 
@@ -162,6 +164,7 @@ namespace turbo::scheduler {
         p->PID = nextPID++;
         p->state = INITIAL_STATE;
         p->processPagemap = vMemory::newPagemap();
+        p->current_dir = turbo::vfs::open(NULL,"/");
         p->parent = nullptr;
 
         if(address){

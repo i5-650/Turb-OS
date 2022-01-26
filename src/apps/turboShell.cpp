@@ -8,11 +8,14 @@
 #include <system/ACPI/acpi.hpp>
 #include <stddef.h>
 #include <lib/panic.hpp>
+#include <drivers/fs/vfs/turboVFS.hpp>
+#include <system/CPU/scheduling/scheduler/scheduler.hpp>
 
 
 namespace turbo::shell{
+    turbo::vfs::tfs_node_t *currentPath;
 
-    void parse(char* cmd){
+    void parse(char* cmd,char *arg){
         switch(hash(cmd)){
             case hash("turbo"):
                 printf("2FAST4U\n");
@@ -43,13 +46,30 @@ namespace turbo::shell{
 
         printf("Press enter to begin...");
         turbo::keyboard::getLine();
-        parse(nullptr);
-        
-        while (true){
+        parse(nullptr,nullptr);
+
+        while(true){
+            if(!currentPath){
+                currentPath = turbo::scheduler::getThisProcess()->current_dir;
+                currentPath->flags = turbo::vfs::TFS_FOLDER;
+            }
             printf("root@turboShell: ");
             char *command = turbo::keyboard::getLine();
-            parse(command);
+            char tmp[10] = "\0";
+
+            for(size_t i = 0; i<strlen(command);i++){
+                if(command[i] != ' ' && command[i] != '0'){
+                   char c[2] = "\0";
+                    c[0] = command[i];
+                    strcat(tmp,c); 
+                }else{
+                    break;
+                }
+                char *arguments = strrm(command, tmp);
+                arguments = strrm(arguments," ");
+
+                parse(tmp,arguments);
+            }
         }
-        
     }
 }
