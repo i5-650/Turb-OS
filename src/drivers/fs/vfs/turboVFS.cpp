@@ -1,5 +1,5 @@
 #include <drivers/fs/vfs/turboVFS.hpp>
-#include <serial/serial.hpp>
+#include <drivers/display/serial/serial.hpp>
 #include <lib/string.hpp>
 #include <lib/lock.hpp>
 
@@ -11,6 +11,12 @@ namespace turbo::vfs{
     tfs_node_t *tfs_root;
 
     DEFINE_LOCK(vfs_lock);
+
+        void *notFound(){
+        if(debug){ turbo::serial::log("[!]-Warning FILE NOT FOUND"); }
+        vfs_lock.unlock();
+        return nullptr;
+        }
 
         tfs_node_t* openNext(tfs_node_t *parentNode,tfs_node_t *childNode,size_t items,size_t cleared,char** pathArray){
         if( items > 0){
@@ -31,7 +37,7 @@ namespace turbo::vfs{
                 items--;
                 openNext(parentNode,childNode,items,cleared,pathArray);
             }
-            for(size_t i=0;i<parentNode->childs.size();i++){
+            for(size_t i=0;i<parentNode->childs.getLength();i++){
                 if((parentNode->childs[i]->flags & 0x07) == TFS_MOUNTPOINT || (parentNode->childs[i]->flags & 0X07) == TFS_SYMLINK){
                     childNode = parentNode->childs[i]->ptr;
                 }else{
@@ -87,11 +93,6 @@ namespace turbo::vfs{
         return childNode;
     }
 
-    void *notFound(){
-        if(debug){ turbo::serial::log("[!]-Warning FILE NOT FOUND"); }
-        vfs_lock.unlock();
-        return nullptr;
-    }
     
     uint64_t read_tfs(tfs_node_t *node,uint64_t offset,uint64_t size,char *buffer){
         if(node->fs->read != 0){
@@ -134,7 +135,7 @@ namespace turbo::vfs{
             return nullptr;
         }
         
-        for(size_t i = 0 ; i < parentNode->childs.size() ; i++){
+        for(size_t i = 0 ; i < parentNode->childs.getLength() ; i++){
             childNode = parentNode->childs[i];
             if(!strcmp(childNode->name,path)){
                 return childNode;
@@ -159,10 +160,10 @@ namespace turbo::vfs{
         if(!parent){
             parent = tfs_root;
         }
-        for(size_t i = 0;i < parent->childs.size();i++){
+        for(size_t i = 0;i < parent->childs.getLength();i++){
             tfs_node_t *node = parent->childs[i];
             if(!strcmp(node->name,name)){
-                for(size_t i = 0;i < node->childs.size();i++){
+                for(size_t i = 0;i < node->childs.getLength();i++){
                     turbo::heap::free(node->childs[i]);
                 }
                 node->childs.destroy();
@@ -200,7 +201,7 @@ namespace turbo::vfs{
         size_t items;
         size_t cleared = 0;
 
-        if(parent == nullptr){parentNode == tfs_root->ptr;}
+        if(parent == nullptr){parentNode = tfs_root->ptr;}
         else{parentNode = parent;}
 
         if(parentNode == nullptr){
@@ -219,7 +220,7 @@ namespace turbo::vfs{
 
         while(!strcmp(pathArray[items-1],"")){items--;}
 
-        openNext(parentNode,childNode,items,cleared,pathArray);
+        return openNext(parentNode,childNode,items,cleared,pathArray);
     }
 
     tfs_node_t *create(tfs_node_t *parent,const char *path){
@@ -259,7 +260,7 @@ namespace turbo::vfs{
         }
         while(!strcmp(pathArray[items-1],"")){ items--; }
 
-        createNext(parentNode,childNode,items,cleared,pathArray);
+        return createNext(parentNode,childNode,items,cleared,pathArray);
     }
 
     tfs_node_t *open_root(tfs_node_t *parent,const char *path){

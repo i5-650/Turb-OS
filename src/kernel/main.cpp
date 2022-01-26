@@ -22,6 +22,7 @@
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <system/CPU/scheduling/RTC/rtc.hpp>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
+#include <drivers/fs/vfs/turboVFS.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -144,9 +145,13 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		turbo::terminal::check("Initilialising HPET...");
+		turbo::terminal::check("Initialising HPET...");
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
+
+		turbo::terminal::check("Initialising VFS ...");
+		turbo::vfs::init();
+		turbo::terminal::okerr(turbo::vfs::isInit);
 
 		rtc::init();
 		printf("good\n");

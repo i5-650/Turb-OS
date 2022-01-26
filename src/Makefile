@@ -131,4 +131,4 @@ endif
 run:
 	echo "Turbooting \n"
 	echo $(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D log.txt -machine smm=off -cdrom image.iso
-	$(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D $(SOURCEDIR)/../log.txt -machine smm=off -cdrom $(ISO) | $(CXXFILT)
+	$(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D $(SOURCEDIR)/../log.txt -machine smm=off -cdrom $(ISO)

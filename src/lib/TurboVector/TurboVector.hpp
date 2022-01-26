@@ -28,7 +28,7 @@ public:
 	}
 
 	void destroy(){
-		free(data);
+		turbo::heap::free(data);
 		isInit = false;
 	}
 
