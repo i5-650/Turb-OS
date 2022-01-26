@@ -3,7 +3,7 @@
 #include <system/CPU/GDT/gdt.hpp>
 #include <stddef.h>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
-
+#include <stdint.h>
 
 using namespace turbo;
 

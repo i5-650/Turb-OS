@@ -19,7 +19,7 @@ namespace turbo::smp {
 	DEFINE_LOCK(lockCPUSMP);
 
 	volatile int cpusUp = 0;
-	cpu_t* cpus;
+	cpu_t* cpus = nullptr;
 
 	extern "C" void InitSSE();
 
@@ -27,7 +27,7 @@ namespace turbo::smp {
 		lockCPUSMP.lock();
 		gdt::reloadAll(cpu->lapic_id);
 		idt::reload();
-		vMemory::switchPagemap(turbo::vMemory::kernel_pagemap);
+		vMemory::switchPagemap(vMemory::kernel_pagemap);
 
 		set_kernel_gs((uintptr_t)cpu->extra_argument);
 		set_user_gs((uintptr_t)cpu->extra_argument);
@@ -85,12 +85,8 @@ namespace turbo::smp {
 			if(apic::isInit){
 				apic::lapicInit(thisCPU->lapicID);
 			}
-			/**
+			
 			scheduler::init();
-			**/
-			while(true){
-				asm volatile ("hlt");
-			}
 		}
 	}
 
@@ -115,7 +111,7 @@ namespace turbo::smp {
 
 			if(smp_tag->bsp_lapic_id != smp_tag->smp_info[i].lapic_id){
 				uint64_t stack = (uint64_t)(heap::malloc(STACK_SIZE));
-				gdt::setStack(i, stack);
+				gdt::setStack(i, stack + STACK_SIZE);
 
 				smp_tag->smp_info[i].target_stack = stack + STACK_SIZE;
 				smp_tag->smp_info[i].goto_address = (uintptr_t)cpuInit;

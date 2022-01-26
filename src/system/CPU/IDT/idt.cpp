@@ -51,8 +51,10 @@ namespace turbo::idt {
 		idtr.base = (uintptr_t)&idt[0];
 
 		for(size_t i = 0; i < 256; i++){
-			idtSetDescriptor(i, int_table[i], 0x8E);
+			idtSetDescriptor(i, int_table[i]);
 		}
+		idtSetDescriptor(SYSCALL, int_table[SYSCALL], 0xEE);
+		pic::init();
 		reload();
 
 		serial::newline();
