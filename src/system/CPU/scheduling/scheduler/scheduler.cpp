@@ -195,9 +195,11 @@ namespace turbo::scheduler {
 
     process_t* getThisProcess(){
         asm volatile("cli");
+        printf("Debug1\n");
         process_t* p = thisCPU->currentProcess;
+        printf("Debug2\n");
         asm volatile("sti");
-
+        printf("Debug3\n");
         return p;
     }
 
