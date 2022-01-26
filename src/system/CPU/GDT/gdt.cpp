@@ -50,6 +50,8 @@ namespace turbo::gdt {
 		DefaultGDT.Tss.base3 = base >> 32;
 		DefaultGDT.Tss.Reserved = 0x00;
 
+		tss[cpu].IOPBOffset = sizeof(TSS);
+
 		reloadGDT();
 		reloadTSS();
 

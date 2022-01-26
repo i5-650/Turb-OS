@@ -28,7 +28,7 @@ namespace turbo::apic {
 		else{
 			x2apic_reg = reg >> 4;
 		}
-		return x2apic_reg + 0x800;
+		return (x2apic_reg + 0x800);
 	}
 
 	uint32_t lapicRead(uint32_t reg){
@@ -76,8 +76,7 @@ namespace turbo::apic {
 	}
 
 	void lapicInit(uint8_t processorID){
-		uint64_t apic_msr = rdmsr(0x1B);
-		apic_msr |= 1 << 11;
+		uint64_t apic_msr = rdmsr(0x1B) | (1 << 11);
 		uint32_t a = 0, b = 0, c = 0, d = 0;
 
 		if (__get_cpuid(1, &a, &b, &c, &d)){
