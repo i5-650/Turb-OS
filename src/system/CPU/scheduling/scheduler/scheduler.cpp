@@ -393,18 +393,14 @@ namespace turbo::scheduler {
     bool isIDTInit = false;
 
     void init(){
-        while(!isInit){
-            asm volatile("hlt");
-        }
-        //printf("here 2\n");
         if(apic::isInit){
             if(schedulerVector == 0){
                 schedulerVector = idt::allocVector();
-                if(!isIDTInit){
-                    idt::registerInterruptHandler(schedulerVector, switchTask);
-                    idt::idtSetDescriptor(schedulerVector, idt::int_table[schedulerVector], 0x8E, 1);
-                    isIDTInit = true;
-                }
+            }
+            if(!isIDTInit){
+                idt::registerInterruptHandler(schedulerVector, switchTask);
+                idt::idtSetDescriptor(schedulerVector, idt::int_table[schedulerVector], 0x8E, 1);
+                isIDTInit = true;
             }
 
             apic::lapicPeriodic(schedulerVector);
@@ -415,6 +411,7 @@ namespace turbo::scheduler {
                 isIDTInit = true;
             }
         }
+        printf("end init\n");
         while(true){
             asm volatile("hlt");
         }

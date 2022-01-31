@@ -87,6 +87,10 @@ namespace turbo::smp {
 			}
 			
 			scheduler::init();
+
+			while(true){
+				asm volatile("hlt");
+			}
 		}
 	}
 
@@ -106,25 +110,23 @@ namespace turbo::smp {
 
 			uint64_t schedulerStack = (uint64_t)(heap::malloc(STACK_SIZE));
 
-			gdt::tss[i].IST[0] = schedulerStack;
+			gdt::tss[i].IST[0] = schedulerStack + STACK_SIZE;
 
 
 			if(smp_tag->bsp_lapic_id != smp_tag->smp_info[i].lapic_id){
 				uint64_t stack = (uint64_t)(heap::malloc(STACK_SIZE));
-				gdt::setStack(i, stack + STACK_SIZE);
+				gdt::tss[i].RSP[0] = stack + STACK_SIZE;
 
 				smp_tag->smp_info[i].target_stack = stack + STACK_SIZE;
 				smp_tag->smp_info[i].goto_address = (uintptr_t)cpuInit;
+				while(cpus[i].isUp == false);
 			}
 			else {
 				cpuInit(&smp_tag->smp_info[i]);
 			}
 		}
-
-		while((uint64_t)cpusUp < smp_tag->cpu_count);
-
+		
 		serial::log("All cores up\n");
-
 		isInit = true;
 	}
 }
