@@ -21,7 +21,7 @@ namespace turbo::smp {
 	volatile int cpusUp = 0;
 	cpu_t* cpus = nullptr;
 
-	extern "C" void InitSSE();
+	//extern "C" void InitSSE();
 
 	static void cpuInit(stivale2_smp_info* cpu){
 		lockCPUSMP.lock();

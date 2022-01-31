@@ -125,6 +125,10 @@ namespace turbo {
 		turbo::acpi::init();
 		turbo::terminal::okerr(acpi::isInit);
 
+		turbo::terminal::check("Initialising HPET...");
+		turbo::hpet::init();
+		turbo::terminal::okerr(turbo::hpet::isInit);
+
 		turbo::terminal::check("Initialising PCI...");
 		turbo::pci::init();
 		turbo::terminal::okerr(pci::isInit);
@@ -144,10 +148,6 @@ namespace turbo {
 		turbo::terminal::check("Initialising PS/2 Mouse...");
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
-
-		turbo::terminal::check("Initialising HPET...");
-		turbo::hpet::init();
-		turbo::terminal::okerr(turbo::hpet::isInit);
 
 		turbo::terminal::check("Initialising VFS ...");
 		turbo::vfs::init();
