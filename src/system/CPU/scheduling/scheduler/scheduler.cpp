@@ -185,6 +185,12 @@ namespace turbo::scheduler {
     process_t* createProcess(const char* name, uint64_t address, uint64_t args){
         process_t* p = allocProcess(name, address, args);
 
+        if(!isInit){
+            initProc = p;
+            isInit = true;
+        }
+        if(address){ createThread(address,args,p); }
+
         processTable.push_back(p);
         processesCounter++;
         processLock.lock();
