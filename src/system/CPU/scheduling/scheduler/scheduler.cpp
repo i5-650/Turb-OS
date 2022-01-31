@@ -48,6 +48,7 @@ namespace turbo::scheduler {
 
     void _yield(uint64_t mSeconds){
         if(apic::isInit){
+            serial::log("_yield");
             apic::lapicOneShot(schedulerVector, mSeconds);
         }
         else {
@@ -195,11 +196,8 @@ namespace turbo::scheduler {
 
     process_t* getThisProcess(){
         asm volatile("cli");
-        printf("Debug1\n");
         process_t* p = thisCPU->currentProcess;
-        printf("Debug2\n");
         asm volatile("sti");
-        printf("Debug3\n");
         return p;
     }
 
@@ -395,11 +393,10 @@ namespace turbo::scheduler {
     bool isIDTInit = false;
 
     void init(){
-        printf("here 1\n");
         while(!isInit){
             asm volatile("hlt");
         }
-        printf("here 2\n");
+        //printf("here 2\n");
         if(apic::isInit){
             if(schedulerVector == 0){
                 schedulerVector = idt::allocVector();

@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define DEFAULT_FREQ 100
+
 namespace turbo::hpet {
 	#define SECS(num) ((num) * 1000000)
 	#define MSECS(num) ((num) * 10000)
@@ -21,6 +23,7 @@ namespace turbo::hpet {
 
 	extern bool isInit;
 	extern HPET* hpet;
+	extern uint64_t frequency;
 
 	char* hour();
 
@@ -30,5 +33,11 @@ namespace turbo::hpet {
 	void mSleep(uint64_t mSeconds);
 	void sleep(uint64_t seconds);
 
-	void init();
+	uint64_t getTick();
+
+	void setFreq(uint64_t freq = DEFAULT_FREQ);
+	uint64_t getFreq();
+	void resetFreq();
+
+	void init(uint64_t freq = DEFAULT_FREQ);
 }

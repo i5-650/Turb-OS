@@ -185,10 +185,10 @@ namespace turbo::apic {
 	// if the timer is masked, we won't get the interrupt
 	void lapicTimerMask(bool isMasked){
 		if(isMasked){
-			lapicWrite(LVT_TIMER_REGISTER, lapicRead(LVT_TIMER_REGISTER) | (1 << 0x10));
+			lapicWrite(LVT_TIMER_REGISTER, (lapicRead(LVT_TIMER_REGISTER) | (1 << 0x10)));
 		}
 		else{
-			lapicWrite(LVT_TIMER_REGISTER, lapicRead(LVT_TIMER_REGISTER) & ~(1 << 0x10));
+			lapicWrite(LVT_TIMER_REGISTER, (lapicRead(LVT_TIMER_REGISTER) & ~(1 << 0x10)));
 		}
 	}
 
@@ -200,9 +200,9 @@ namespace turbo::apic {
 			lapicWrite(INITIAL_COUNT_REGISTER, 0xFFFFFFFF);
 			lapicTimerMask(false);
 			// if we are too fast, it may creates issues
-			turbo::hpet::mSleep(1);
+			turbo::hpet::mSleep(2);
 			lapicTimerMask(true);
-			tickCountInMS = 0xFFFFFFFF - lapicRead(CURRENT_COUNT_REGISTER);
+			tickCountInMS = (0xFFFFFFFF - lapicRead(CURRENT_COUNT_REGISTER));
 		}
 	}
 
