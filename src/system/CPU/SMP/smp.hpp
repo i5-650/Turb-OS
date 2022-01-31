@@ -9,6 +9,13 @@ using namespace turbo;
 
 namespace turbo::smp {
 
+	#define thisCPU \
+	({ \
+		uint64_t cpuNumber; \
+		asm volatile("movq %%gs:[0], %0" : "=r"(cpuNumber) : : "memory"); \
+		&turbo::smp::cpus[cpuNumber]; \
+	})
+
 	struct cpu_t {
 		uint64_t cpuID;
 		uint32_t lapicID;
@@ -28,11 +35,4 @@ namespace turbo::smp {
 	extern bool isInit;
 
 	void init();
-
-	#define thisCPU \
-	({ \
-		uint64_t cpuNumber; \
-		asm volatile("movq %%gs:[0], %0" : "=r"(cpuNumber) : : "memory"); \
-		&turbo::smp::cpus[cpuNumber]; \
-	})
 }
