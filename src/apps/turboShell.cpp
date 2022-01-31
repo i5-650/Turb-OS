@@ -51,7 +51,7 @@ namespace turbo::shell{
         while(true){
             if(!currentPath){
                 currentPath = turbo::scheduler::getThisProcess()->current_dir;
-                currentPath->flags = turbo::vfs::TFS_FOLDER;
+                //currentPath->flags = turbo::vfs::TFS_FOLDER;
             }
             printf("root@turboShell: ");
             char *command = turbo::keyboard::getLine();
