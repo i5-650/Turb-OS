@@ -49,10 +49,10 @@ namespace turbo::shell{
         turbo::keyboard::getLine();
 
         while(true){
-            if(!currentPath){
+            /*if(!currentPath){
                 currentPath = turbo::scheduler::getThisProcess()->current_dir;
                 //currentPath->flags = turbo::vfs::TFS_FOLDER;
-            }
+            }*/
             printf("root@turboShell: ");
             char *command = turbo::keyboard::getLine();
             char tmp[10] = "\0";
@@ -62,7 +62,8 @@ namespace turbo::shell{
                    char c[2] = "\0";
                     c[0] = command[i];
                     strcat(tmp,c); 
-                }else{
+                }
+                else{
                     break;
                 }
                 char *arguments = strrm(command, tmp);

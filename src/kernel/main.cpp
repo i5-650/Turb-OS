@@ -141,6 +141,10 @@ namespace turbo {
 		turbo::smp::init();
 		turbo::terminal::okerr(turbo::smp::isInit);
 
+		turbo::terminal::check("Initialising VFS ...");
+		turbo::vfs::init();
+		turbo::terminal::okerr(turbo::vfs::isInit);
+
 		turbo::terminal::check("Initialising PS/2 Keyboard...");
 		turbo::keyboard::init();
 		turbo::terminal::okerr(turbo::keyboard::isInit);
@@ -149,14 +153,10 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		turbo::terminal::check("Initialising VFS ...");
-		turbo::vfs::init();
-		turbo::terminal::okerr(turbo::vfs::isInit);
-
 		rtc::init();
 		printf("good\n");
 
-		turbo::shell::run();
+		//turbo::shell::run();
 		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
 		scheduler::createThread((uint64_t)turbo::rtc::time, 0, scheduler::initProc);
 

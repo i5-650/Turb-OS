@@ -88,7 +88,6 @@ namespace turbo::rtc{
     }
 
     void getTime(){
-        turbo::serial::log("Lancement getTime\n");
         turbo::serial::log("%.4ld/%.2ld/%.2ld %.2ld:%.2ld:%.2ld", century()*100 + year(), month(), day(), hour(), minute(), second());
         printf("%4ld/",century()*100+year());
         (month()<10) ? printf("0%ld/",month()) : printf("%2ld/",month());
@@ -96,8 +95,6 @@ namespace turbo::rtc{
         (hour()<10) ? printf("0%ld:",hour()) : printf("%2ld:",hour());
         (minute()<10) ? printf("0%ld:",minute()) : printf("%2ld:",minute());
         (second()<10) ? printf("0%ld\n",second()) : printf("%2ld\n",second());
-
-        turbo::serial::log("Fin getTime \n");
     }
 
 }
