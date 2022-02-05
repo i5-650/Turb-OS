@@ -7,14 +7,14 @@
 
 using namespace turbo;
 
-namespace turbo::smp {
+#define thisCPU \
+({ \
+	uint64_t cpuNumber; \
+	asm volatile("movq %%gs:[0], %0" : "=r"(cpuNumber) : : "memory"); \
+	&turbo::smp::cpus[cpuNumber]; \
+})
 
-	#define thisCPU \
-	({ \
-		uint64_t cpuNumber; \
-		asm volatile("movq %%gs:[0], %0" : "=r"(cpuNumber) : : "memory"); \
-		&turbo::smp::cpus[cpuNumber]; \
-	})
+namespace turbo::smp {
 
 	struct cpu_t {
 		uint64_t cpuID;

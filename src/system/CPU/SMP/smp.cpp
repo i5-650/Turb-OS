@@ -21,7 +21,7 @@ namespace turbo::smp {
 	volatile int cpusUp = 0;
 	cpu_t* cpus = nullptr;
 
-	//extern "C" void InitSSE();
+	extern "C" void InitSSE();
 
 	static void cpuInit(stivale2_smp_info* cpu){
 		lockCPUSMP.lock();
@@ -65,7 +65,7 @@ namespace turbo::smp {
 			}
 			wrxcr(0, xcr0);
 
-			thisCPU->fpuStorageSize = (size_t)c;
+			thisCPU->fpuStorageSize = c;
 			thisCPU->fpuSave = xsave;
 			thisCPU->fpuRestore = xrstor;
 		}
@@ -108,7 +108,7 @@ namespace turbo::smp {
 			smp_tag->smp_info[i].extra_argument = (uint64_t)&cpus[i];
 			cpus[i].cpuID = i;
 
-			uint64_t schedulerStack = (uint64_t)(heap::malloc(STACK_SIZE));
+			uint64_t schedulerStack = (uint64_t)heap::malloc(STACK_SIZE);
 
 			gdt::tss[i].IST[0] = schedulerStack + STACK_SIZE;
 
