@@ -75,7 +75,7 @@ namespace turbo::smp {
 			thisCPU->fpuRestore = fxrstor;
 		}
 
-		serial::log("[**] SMP: %ld up\n", thisCPU->lapicID);
+		serial::log("[**] SMP: %ld up\n", thisCPU->cpuID);
 		thisCPU->isUp = true;
 		cpusUp++;
 
@@ -86,11 +86,8 @@ namespace turbo::smp {
 				apic::lapicInit(thisCPU->lapicID);
 			}
 			
+			serial::log("init sched \n");
 			scheduler::init();
-
-			while(true){
-				asm volatile("hlt");
-			}
 		}
 	}
 
@@ -119,13 +116,12 @@ namespace turbo::smp {
 
 				smp_tag->smp_info[i].target_stack = stack + STACK_SIZE;
 				smp_tag->smp_info[i].goto_address = (uintptr_t)cpuInit;
-				while(cpus[i].isUp == false);
 			}
 			else {
 				cpuInit(&smp_tag->smp_info[i]);
 			}
 		}
-		
+		while((uint64_t)cpusUp < smp_tag->cpu_count);
 		serial::log("All cores up\n");
 		isInit = true;
 	}

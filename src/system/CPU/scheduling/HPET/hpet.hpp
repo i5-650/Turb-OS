@@ -24,6 +24,7 @@ namespace turbo::hpet {
 	extern bool isInit;
 	extern HPET* hpet;
 	extern uint64_t frequency;
+	extern bool isScheduling;
 
 	char* hour();
 

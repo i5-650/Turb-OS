@@ -15,7 +15,7 @@ loadGDT:
 GLOBAL loadGDT
 
 loadTSS:
-    mov ax, (9 * 8) | 3
+    mov ax, (9 * 8) | 0
 	ltr ax
-	ret
+	retq
 GLOBAL loadTSS

@@ -10,7 +10,7 @@
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <lib/lock.hpp>
 #include <lib/cpu/cpu.hpp>
-
+#include <system/CPU/scheduling/PIT/pit.hpp>
 
 namespace turbo::apic {
 	bool isInit = false;
@@ -123,7 +123,7 @@ namespace turbo::apic {
 				return ioapic;
 			}
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	void ioapicRedirectGSI(uint32_t gsi, uint8_t vec, uint16_t flags){
@@ -200,7 +200,12 @@ namespace turbo::apic {
 			lapicWrite(INITIAL_COUNT_REGISTER, 0xFFFFFFFF);
 			lapicTimerMask(false);
 			// if we are too fast, it may creates issues
-			turbo::hpet::mSleep(2);
+			if(hpet::isInit){
+				hpet::mSleep(1);
+			}
+			else {
+				pit::mSleep(1);
+			}
 			lapicTimerMask(true);
 			tickCountInMS = (0xFFFFFFFF - lapicRead(CURRENT_COUNT_REGISTER));
 		}

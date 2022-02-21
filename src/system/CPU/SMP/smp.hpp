@@ -1,5 +1,4 @@
 #pragma once
-
 #include <system/CPU/GDT/gdt.hpp>
 #include <stddef.h>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
@@ -25,7 +24,7 @@ namespace turbo::smp {
 		void (*fpuSave)(void*);
 		void (*fpuRestore)(void*);
 
-		volatile bool isUp;
+		bool isUp;
 		scheduler::thread_t* currentThread;
 		scheduler::process_t* currentProcess;
 		scheduler::process_t* idleP;

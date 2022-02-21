@@ -54,7 +54,7 @@ namespace turbo::idt {
 
 	uint8_t allocVector();
 	void init();
-	void registerInterruptHandler(uint8_t vector, intHandler_t handler);
+	void registerInterruptHandler(uint8_t vector, intHandler_t handler, bool ioapic = true);
 	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr = 0x8E, uint8_t ist = 0);
 
 	extern "C" void int_handler(registers_t *regs);

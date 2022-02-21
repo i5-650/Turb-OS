@@ -220,8 +220,7 @@ namespace turbo::keyboard {
 			serial::log("[!!] Already init: keyboard\n");
 			return;
 		}
-		buff = (char*)malloc(sizeof(char)* 10);
-		buff[0] = '\0';
+		buff = (char*)calloc(1024, sizeof(char));
 		registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
 
 		serial::newline();
