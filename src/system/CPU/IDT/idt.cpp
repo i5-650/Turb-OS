@@ -5,7 +5,9 @@
 #include <lib/portIO.hpp>
 #include <system/CPU/PIC/pic.hpp>
 #include <system/CPU/APIC/apic.hpp>
-
+#include <system/CPU/SMP/smp.hpp>
+#include <system/CPU/scheduling/scheduler/scheduler.hpp>
+#include <lib/panic.hpp>
 using namespace turbo;
 
 
@@ -20,12 +22,12 @@ namespace turbo::idt {
 	intHandler_t interrupt_handlers[256];
 
 	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr, uint8_t ist){
-		idt[vector].offset_1 = (uint64_t)isr & 0xFFFF;
+		idt[vector].offset_1 = (uint64_t)isr;
 		idt[vector].selector = 0x28;
 		idt[vector].ist = ist;
 		idt[vector].type_attr = type_attr;
-		idt[vector].offset_2 = ((uint64_t)isr >> 16) & 0xFFFF;
-		idt[vector].offset_3 = ((uint64_t)isr >> 32) & 0xFFFFFFFF;
+		idt[vector].offset_2 = ((uint64_t)isr >> 16);
+		idt[vector].offset_3 = ((uint64_t)isr >> 32);
 		idt[vector].zero = 0;
 	}
 
@@ -67,9 +69,9 @@ namespace turbo::idt {
 		return (++nextFree == SYSCALL ? ++nextFree : nextFree);
 	}
 
-	void registerInterruptHandler(uint8_t vector, intHandler_t handler){
+	void registerInterruptHandler(uint8_t vector, intHandler_t handler, bool ioapic){
 		interrupt_handlers[vector] = handler;
-		if(apic::isInit && vector > 31 && vector < 48){
+		if(ioapic && apic::isInit && vector > 31 && vector < 48){
 			apic::ioapicRedirectIRQ(vector - 32, vector);
 		}
 	}
@@ -111,11 +113,8 @@ namespace turbo::idt {
 
 	static volatile bool halt = true;
 	void exception_handler(registers_t *regs){
-		serial::log("System exception! %s", (char*)exception_messages[regs->int_no & 0xff]);
+		serial::log("System exception! %s", (char*)exception_messages[regs->int_no & 0xFF]);
 		serial::log("Error code: 0x%lX", regs->error_code);
-
-		switch (regs->int_no){
-		}
 
 		printf("PANIC Exception: %s\n", (char*)exception_messages[regs->int_no & 0xff]);
 
@@ -132,6 +131,12 @@ namespace turbo::idt {
 
 		printf("PANIC System halted!\n");
 		serial::log("[/!\\]System halted\n");
+
+		if(scheduler::getThisThread()->state == scheduler::RUNNING){
+			asm volatile ("cli");
+			thisCPU->currentThread->state = scheduler::READY;
+			asm volatile ("sti");
+		}
 		asm volatile ("cli; hlt");
 	}
 
@@ -148,10 +153,15 @@ namespace turbo::idt {
 		}
 	}
 
-	void int_handler(registers_t *regs){
-		if (regs->int_no < 32){
+	extern "C" void int_handler(registers_t *regs){
+		if (regs->int_no < 32 ){
 			exception_handler(regs);
 		}
-		irq_handler(regs);
+		else if(regs->int_no >= 32 && regs->int_no < 256){
+			irq_handler(regs);
+		}
+		else {
+			PANIC("UNKNOW INTERRUPT");
+		}
 	}
 }

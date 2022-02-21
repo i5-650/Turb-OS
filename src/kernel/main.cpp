@@ -23,6 +23,7 @@
 #include <system/CPU/scheduling/RTC/rtc.hpp>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
 #include <drivers/fs/vfs/turboVFS.hpp>
+#include <system/CPU/scheduling/PIT/pit.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -48,6 +49,20 @@ namespace turbo {
 			}
 		}
 		return -1;
+	}
+
+	void myTime(){
+		while(true){
+			size_t size = 0;
+			for(size_t i = 0; i < STACK_SIZE; ++i){
+				if(kernelStack[i] != 'A'){
+					break;
+				}
+				size++;
+			}
+
+			printf("clock\n");
+		}
 	}
 
 	void main(struct stivale2_struct *stivale2_struct){
@@ -129,6 +144,10 @@ namespace turbo {
 		turbo::hpet::init();
 		turbo::terminal::okerr(turbo::hpet::isInit);
 
+		turbo::terminal::check("Initialising PIT...");
+		turbo::pit::init();
+		turbo::terminal::okerr(turbo::pit::isInit);
+
 		turbo::terminal::check("Initialising PCI...");
 		turbo::pci::init();
 		turbo::terminal::okerr(pci::isInit);
@@ -145,6 +164,7 @@ namespace turbo {
 		turbo::vfs::init();
 		turbo::terminal::okerr(turbo::vfs::isInit);
 
+
 		turbo::terminal::check("Initialising PS/2 Keyboard...");
 		turbo::keyboard::init();
 		turbo::terminal::okerr(turbo::keyboard::isInit);
@@ -158,7 +178,7 @@ namespace turbo {
 
 		//turbo::shell::run();
 		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
-		scheduler::createThread((uint64_t)turbo::rtc::time, 0, scheduler::initProc);
+		scheduler::createThread((uint64_t)myTime, 0, scheduler::initProc);
 
 		printf("good2\n");
 		//turbo::shell::run();
