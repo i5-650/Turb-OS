@@ -24,6 +24,7 @@
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
 #include <drivers/fs/vfs/turboVFS.hpp>
 #include <system/CPU/scheduling/PIT/pit.hpp>
+#include <drivers/display/ssfn/ssfn.hpp>
 #pragma endregion include
 
 namespace turbo {
@@ -60,8 +61,7 @@ namespace turbo {
 				}
 				size++;
 			}
-
-			printf("clock\n");
+			ssfn::printfAt(0,0,"%s", rtc::getTime());
 		}
 	}
 
@@ -104,6 +104,7 @@ namespace turbo {
 		}
 
 		turbo::framebuffer::init();
+		ssfn::init();
 
 		if(term_tag == NULL){
 			PANIC("Could not find terminal tag!");

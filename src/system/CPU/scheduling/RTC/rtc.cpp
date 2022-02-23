@@ -87,14 +87,17 @@ namespace turbo::rtc{
         while(time()!=timeWanted);
     }
 
-    void getTime(){
-        turbo::serial::log("%.4ld/%.2ld/%.2ld %.2ld:%.2ld:%.2ld", century()*100 + year(), month(), day(), hour(), minute(), second());
+    char theTIME[30];
+    char* getTime(){
+        /*turbo::serial::log("%.4ld/%.2ld/%.2ld %.2ld:%.2ld:%.2ld", century()*100 + year(), month(), day(), hour(), minute(), second());
         printf("%4ld/",century()*100+year());
         (month()<10) ? printf("0%ld/",month()) : printf("%2ld/",month());
         (day()<10) ? printf("0%ld - ",day()) : printf("%2ld - ",day());
         (hour()<10) ? printf("0%ld:",hour()) : printf("%2ld:",hour());
         (minute()<10) ? printf("0%ld:",minute()) : printf("%2ld:",minute());
-        (second()<10) ? printf("0%ld\n",second()) : printf("%2ld\n",second());
+        (second()<10) ? printf("0%ld\n",second()) : printf("%2ld\n",second());*/
+        sprintf(theTIME, "%.4ld/%.2ld/%.2ld %.2ld:%.2ld:%.2ld", century()*100 + year(), month(), day(), hour(), minute(), second());
+        return theTIME;
     }
 
 }

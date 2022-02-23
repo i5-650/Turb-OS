@@ -192,7 +192,7 @@ namespace turbo::vMemory {
 
 	void switchPagemap(Pagemap *pmap){
 		// TODO  null pointer exception
-		write_cr(3, reinterpret_cast<uint64_t>(pmap->PML4));
+		write_cr(3, (uint64_t)pmap->PML4);
 	}
 
 	PTable* getPagemap(){

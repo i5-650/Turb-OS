@@ -26,8 +26,8 @@ namespace turbo::idt {
 		idt[vector].selector = 0x28;
 		idt[vector].ist = ist;
 		idt[vector].type_attr = type_attr;
-		idt[vector].offset_2 = ((uint64_t)isr >> 16);
-		idt[vector].offset_3 = ((uint64_t)isr >> 32);
+		idt[vector].offset_2 = ((uint64_t)isr) >> 16;
+		idt[vector].offset_3 = ((uint64_t)isr) >> 32;
 		idt[vector].zero = 0;
 	}
 
@@ -36,8 +36,6 @@ namespace turbo::idt {
 		asm volatile ("lidt %0" : : "memory"(idtr));
 		asm volatile ("sti");
 	}
-
-	extern "C" void *int_table[];
 
 	void init(){
 		serial::log("[+] Initialising IDT");
@@ -49,7 +47,7 @@ namespace turbo::idt {
 
 		idt_lock.lock();
 
-		idtr.limit = (uint16_t)sizeof(idtEntry_t) * 256 - 1;
+		idtr.limit = sizeof(idtEntry_t) * 256 - 1;
 		idtr.base = (uintptr_t)&idt[0];
 
 		for(size_t i = 0; i < 256; i++){
@@ -115,6 +113,15 @@ namespace turbo::idt {
 	void exception_handler(registers_t *regs){
 		serial::log("System exception! %s", (char*)exception_messages[regs->int_no & 0xFF]);
 		serial::log("Error code: 0x%lX", regs->error_code);
+
+		switch (regs->int_no)
+		{
+		}
+
+		if(!halt){
+			serial::log("youpi");
+			return;
+		}
 
 		printf("PANIC Exception: %s\n", (char*)exception_messages[regs->int_no & 0xff]);
 

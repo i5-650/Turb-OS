@@ -40,8 +40,9 @@ namespace turbo::gdt {
 		gdt_lock.lock();
 
 		uintptr_t base = (uintptr_t)&tss[cpu];
+		uintptr_t limit = base + sizeof(tss[cpu]);
 
-		DefaultGDT.Tss.length = base + sizeof(tss[cpu]);
+		DefaultGDT.Tss.length = limit;
 		DefaultGDT.Tss.base0 = base;
 		DefaultGDT.Tss.base1 = base >> 16;
 		DefaultGDT.Tss.flag1 = 0x89;
