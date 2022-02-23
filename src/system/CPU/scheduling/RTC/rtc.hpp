@@ -26,5 +26,5 @@ namespace turbo::rtc{
 
     void sleep(uint64_t seconds);
 
-    void getTime();
+    char* getTime();
 }

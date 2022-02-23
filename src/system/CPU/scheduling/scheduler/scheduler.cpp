@@ -1,5 +1,4 @@
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
-#include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <system/CPU/APIC/apic.hpp>
 #include <system/CPU/IDT/idt.hpp>
 #include <system/CPU/SMP/smp.hpp>
@@ -11,8 +10,8 @@
 #include <system/memory/heap/heap.hpp>
 #include <lib/panic.hpp>
 #include <drivers/display/terminal/printf.h>
+#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
 #include <system/CPU/scheduling/PIT/pit.hpp>
-
 using namespace turbo;
 using namespace turbo::heap;
 
@@ -56,24 +55,27 @@ namespace turbo::scheduler {
 	// threads
 	thread_t* allocThread(uint64_t address, uint64_t args){
 		threadLock.lock();
+		serial::log("in it");
 
 		thread_t* myThread = (thread_t*) malloc(sizeof(thread_t));
 
+		serial::log("alloc ok");
 		myThread->state = INITIAL_STATE;
 		myThread->threadStack = (uint8_t*)malloc(STACK_SIZE);
+		serial::log("alloc stack");
 
 		myThread->threadRegisters.rflags = 0x202;
 		myThread->threadRegisters.cs = 0x28;
 		myThread->threadRegisters.ss = 0x30;
-
-		myThread->threadRegisters.rsi = args;
+		serial::log("regs");
 		myThread->threadRegisters.rip = address;
 		myThread->threadRegisters.rdi = (uint64_t)(args);
-		myThread->threadRegisters.rsp = (uint64_t)(myThread->threadStack + STACK_SIZE);
+		myThread->threadRegisters.rsp = (uint64_t)(myThread->threadStack) + STACK_SIZE;
 		
 		myThread->parent = nullptr;
 
 		threadLock.unlock();
+		serial::log("now return");
 		return myThread;
 	}
 
@@ -465,6 +467,5 @@ namespace turbo::scheduler {
 			turbo::pit::isScheduling = true;
 		}
 		serial::log("before while");
-		while(true) asm volatile ("hlt");
 	}   
 }

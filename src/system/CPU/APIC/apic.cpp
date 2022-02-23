@@ -10,7 +10,7 @@
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <lib/lock.hpp>
 #include <lib/cpu/cpu.hpp>
-#include <system/CPU/scheduling/PIT/pit.hpp>
+#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
 
 namespace turbo::apic {
 	bool isInit = false;
@@ -200,12 +200,7 @@ namespace turbo::apic {
 			lapicWrite(INITIAL_COUNT_REGISTER, 0xFFFFFFFF);
 			lapicTimerMask(false);
 			// if we are too fast, it may creates issues
-			if(hpet::isInit){
-				hpet::mSleep(1);
-			}
-			else {
-				pit::mSleep(1);
-			}
+			omtime::mSleep(1);
 			lapicTimerMask(true);
 			tickCountInMS = (0xFFFFFFFF - lapicRead(CURRENT_COUNT_REGISTER));
 		}
@@ -275,7 +270,7 @@ namespace turbo::apic {
 		uint16_t event = getSCIevent();
 		if (event & ACPI_POWER_BUTTON){
 			acpi::shutdown();
-			turbo::hpet::mSleep(50);
+			omtime::mSleep(50);
 			outw(0xB004, 0x2000);
 			outw(0x604, 0x2000);
 			outw(0x4004, 0x3400);
