@@ -31,7 +31,6 @@ namespace turbo::smp {
 	};
 
 	extern cpu_t *cpus;
-	extern bool isInit;
 
 	void init();
 }
