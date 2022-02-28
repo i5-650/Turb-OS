@@ -15,6 +15,7 @@ HeapBlock *Heap::next(HeapBlock *block){
 
 HeapBlock *Heap::split(HeapBlock *block, size_t size){
     if (block != nullptr && size != 0){
+
         while (size < block->size){
             size_t sz = block->size >> 1;
             block->size = sz;
@@ -27,6 +28,7 @@ HeapBlock *Heap::split(HeapBlock *block, size_t size){
 			return block;
 		}
     }
+
     return nullptr;
 }
 
@@ -46,14 +48,17 @@ HeapBlock *Heap::find_best(size_t size){
     while (block < this->tail && tmp < this->tail){
         if (block->free && tmp->free && block->size == tmp->size){
             block->size <<= 1;
+
             if(size <= block->size && (best_block == nullptr || block->size <= best_block->size)){
 				best_block = block;
 			}
 
             block = this->next(tmp);
+
             if(block < this->tail){
 				tmp = this->next(block);
 			}
+
             continue;
         }
 
@@ -103,10 +108,13 @@ void Heap::coalescence(){
         HeapBlock *tmp = this->next(block);
 
         bool no_coalescence = true;
+
         while(block < this->tail && tmp < this->tail){
+
             if(block->free && tmp->free && block->size == tmp->size){
                 block->size <<= 1;
                 block = this->next(block);
+
                 if(block < this->tail){
                     tmp = this->next(block);
                     no_coalescence = false;
@@ -118,6 +126,7 @@ void Heap::coalescence(){
             }
             else{
                 block = this->next(tmp);
+
                 if(block < this->tail){
 					tmp = this->next(block);
 				}
@@ -194,6 +203,7 @@ void *Heap::malloc(size_t size){
         this->lock.unlock();
         return nullptr;
     }
+
     this->lock.unlock();
 
     this->expand(size / 0x1000 + 1);
@@ -203,6 +213,7 @@ void *Heap::malloc(size_t size){
 
 void *Heap::calloc(size_t num, size_t size){
     void *ptr = this->malloc(num * size);
+
     if(!ptr){
 		return nullptr;
 	}
@@ -212,6 +223,7 @@ void *Heap::calloc(size_t num, size_t size){
 }
 
 void *Heap::realloc(void *ptr, size_t size){
+
     if(!ptr){
 		return this->malloc(size);
 	}
@@ -232,6 +244,7 @@ void *Heap::realloc(void *ptr, size_t size){
     if (newptr == nullptr) return ptr;
 
     memcpy(newptr, ptr, oldsize);
+    
     this->free(ptr);
     return newptr;
 }

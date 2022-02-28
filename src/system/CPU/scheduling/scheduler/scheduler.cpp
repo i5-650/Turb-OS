@@ -26,34 +26,33 @@ namespace turbo::scheduler {
     DEFINE_LOCK(sched_lock);
     DEFINE_LOCK(proc_lock);
 
-    thread_t *thread_alloc(uint64_t addr, uint64_t args){
+    thread_t *allocThread(uint64_t addr, uint64_t args){
         thread_lock.lock();
         thread_t *thread = new thread_t;
 
         thread->state = INITIAL_STATE;
-        thread->stack = static_cast<uint8_t*>(malloc(STACK_SIZE));
+        thread->thread_stack = (uint8_t*)malloc(STACK_SIZE);
 
-        thread->regs.rflags = 0x202;
-        thread->regs.cs = 0x28;
-        thread->regs.ss = 0x30;
+        thread->thread_regs.rflags = 0x202;
+        thread->thread_regs.cs = 0x28;
+        thread->thread_regs.ss = 0x30;
+        thread->thread_regs.rip = addr;
+        thread->thread_regs.rdi = (uint64_t)args;
+        thread->thread_regs.rsp = ((uint64_t)thread->thread_stack) + STACK_SIZE;
 
-        thread->regs.rip = addr;
-        thread->regs.rdi = reinterpret_cast<uint64_t>(args);
-        thread->regs.rsp = reinterpret_cast<uint64_t>(thread->stack) + STACK_SIZE;
-
-        thread->parent = nullptr;
+        thread->parent_proc = nullptr;
         thread_lock.unlock();
 
         return thread;
     }
 
-    thread_t *thread_create(uint64_t addr, uint64_t args, process_t *parent){
-        thread_t *thread = thread_alloc(addr, args);
+    thread_t *createThread(uint64_t addr, uint64_t args, process_t *parent){
+        thread_t *thread = allocThread(addr, args);
 
         if(parent){
-            thread->tid = parent->next_tid++;
-            thread->parent = parent;
-            parent->threads.push_back(thread);
+            thread->TID = parent->nextTID++;
+            thread->parent_proc = parent;
+            parent->threadsVec.push_back(thread);
         }
 
         thread_count++;
@@ -70,18 +69,18 @@ namespace turbo::scheduler {
         }
     }
 
-    process_t *proc_alloc(const char *name, uint64_t addr, uint64_t args){
+    process_t *allocProc(const char *name, uint64_t addr, uint64_t args){
         process_t *proc = new process_t;
 
         proc_lock.lock();
         strncpy(proc->name, name, (strlen(name) < 128) ? strlen(name) : 128);
-        proc->pid = next_pid++;
+        proc->PID = next_pid++;
         proc->state = INITIAL_STATE;
         proc->pagemap = vMemory::newPagemap();
         proc->parent = nullptr;
 
         if(addr){
-            thread_create(addr, args, proc);
+            createThread(addr, args, proc);
         }
 
         if(!isInit){
@@ -94,8 +93,8 @@ namespace turbo::scheduler {
         return proc;
     }
 
-    process_t *proc_create(const char *name, uint64_t addr, uint64_t args){
-        process_t *proc = proc_alloc(name, addr, args);
+    process_t *createProc(const char *name, uint64_t addr, uint64_t args){
+        process_t *proc = allocProc(name, addr, args);
         proc_table.push_back(proc);
         proc_count++;
         proc_lock.lock();
@@ -128,29 +127,29 @@ namespace turbo::scheduler {
         }
     }
 
-    void thread_block(){
+    void blockThread(){
         asm volatile ("cli");
         if(this_thread()->state == READY || this_thread()->state == RUNNING){
             this_thread()->state = BLOCKED;
-            serial::log("Blocking thread with TID: %d and PID: %d", this_thread()->tid, this_proc()->pid);
+            serial::log("Blocking thread with TID: %d and PID: %d", this_thread()->TID, this_proc()->PID);
         }
 
         asm volatile ("sti");
         _yield();
     }
 
-    void thread_block(thread_t *thread){
+    void blockThread(thread_t *thread){
         asm volatile ("cli");
 
         if(this_thread()->state == READY || this_thread()->state == RUNNING){
             thread->state = BLOCKED;
-            serial::log("Blocking thread with TID: %d and PID: %d", thread->tid, thread->parent->pid);
+            serial::log("Blocking thread with TID: %d and PID: %d", thread->TID, thread->parent_proc->PID);
         }
 
         asm volatile ("sti");
     }
 
-    void proc_block(){
+    void blockProc(){
         asm volatile ("cli");
         if(this_proc() == initproc){
             serial::log("Can not block init process!");
@@ -160,18 +159,18 @@ namespace turbo::scheduler {
 
         if(this_proc()->state == READY || this_proc()->state == RUNNING){
             this_proc()->state = BLOCKED;
-            serial::log("Blocking process with PID: %d", this_proc()->pid);
+            serial::log("Blocking process with PID: %d", this_proc()->PID);
         }
         asm volatile ("sti");
         _yield();
     }
 
-    void proc_block(process_t *proc){
+    void blockProc(process_t *proc){
         asm volatile ("cli");
 
         if(this_proc()->state == READY || this_proc()->state == RUNNING){
             proc->state = BLOCKED;
-            serial::log("Blocking process with PID: %d", proc->pid);
+            serial::log("Blocking process with PID: %d", proc->PID);
         }
 
         asm volatile ("sti");
@@ -182,7 +181,7 @@ namespace turbo::scheduler {
 
         if(thread->state == BLOCKED){
             thread->state = READY;
-            serial::log("Unblocking thread with TID: %d and PID: %d", thread->tid, thread->parent->pid);
+            serial::log("Unblocking thread with TID: %d and PID: %d", thread->TID, thread->parent_proc->PID);
         }
 
         asm volatile ("sti");
@@ -193,20 +192,20 @@ namespace turbo::scheduler {
 
         if(proc->state == BLOCKED){
             proc->state = READY;
-            serial::log("Unblocking process with PID: %d", proc->pid);
+            serial::log("Unblocking process with PID: %d", proc->PID);
         }
 
         asm volatile ("sti");
     }
 
-    void thread_exit(){
+    void exitThread(){
         asm volatile ("cli");
-        if(this_proc() == initproc && this_proc()->threads.size() == 1 && this_proc()->children.size() == 0){
+        if(this_proc() == initproc && this_proc()->threadsVec.size() == 1 && this_proc()->children.size() == 0){
             serial::log("Can not kill init process!");
             return;
         }
         this_thread()->state = KILLED;
-        serial::log("Exiting thread with TID: %d and PID: %d", this_thread()->tid, this_proc()->pid);
+        serial::log("Exiting thread with TID: %d and PID: %d", this_thread()->TID, this_proc()->PID);
         asm volatile ("sti");
         _yield();
 
@@ -215,7 +214,7 @@ namespace turbo::scheduler {
         }
     }
 
-    void proc_exit(){
+    void exitProc(){
         asm volatile ("cli");
         if(this_proc() == initproc){
             serial::log("Can not kill init process!");
@@ -223,7 +222,7 @@ namespace turbo::scheduler {
         }
 
         this_proc()->state = KILLED;
-        serial::log("Exiting process with PID: %d", this_proc()->pid);
+        serial::log("Exiting process with PID: %d", this_proc()->PID);
         asm volatile ("sti");
         _yield();
 
@@ -245,10 +244,10 @@ namespace turbo::scheduler {
                 clean_proc(childproc);
             }
 
-            for (size_t i = 0; i < proc->threads.size(); i++){
-                thread_t *thread = proc->threads[i];
-                proc->threads.remove(proc->threads.find(thread));
-                free(thread->stack);
+            for (size_t i = 0; i < proc->threadsVec.size(); i++){
+                thread_t *thread = proc->threadsVec[i];
+                proc->threadsVec.remove(proc->threadsVec.find(thread));
+                free(thread->thread_stack);
                 free(thread);
                 thread_count--;
             }
@@ -258,7 +257,7 @@ namespace turbo::scheduler {
             if(parentproc != nullptr){
                 parentproc->children.remove(parentproc->children.find(proc));
                 
-                if (parentproc->children.size() == 0 && proc->threads.size() == 0){
+                if (parentproc->children.size() == 0 && proc->threadsVec.size() == 0){
                     parentproc->state = KILLED;
                     clean_proc(parentproc);
                 }
@@ -269,17 +268,17 @@ namespace turbo::scheduler {
             proc_count--;
         }
         else{
-            for(size_t i = 0; i < proc->threads.size(); i++){
-                thread_t *thread = proc->threads[i];
+            for(size_t i = 0; i < proc->threadsVec.size(); i++){
+                thread_t *thread = proc->threadsVec[i];
                 if(thread->state == KILLED){
-                    proc->threads.remove(proc->threads.find(thread));
-                    free(thread->stack);
+                    proc->threadsVec.remove(proc->threadsVec.find(thread));
+                    free(thread->thread_stack);
                     free(thread);
                     thread_count--;
                 }
             }
 
-            if(proc->children.size() == 0 && proc->threads.size() == 0){
+            if(proc->children.size() == 0 && proc->threadsVec.size() == 0){
                 proc->state = KILLED;
                 clean_proc(proc);
             }
@@ -294,7 +293,7 @@ namespace turbo::scheduler {
         sched_lock.lock();
         uint64_t timeslice = DEFAULT_TIMESLICE;
 
-        if (!this_proc() || !this_thread()){
+        if(!this_proc() || !this_thread()){
             for(size_t i = 0; i < proc_table.size(); i++){
                 process_t *proc = proc_table[i];
                 if(proc->state != READY){
@@ -302,8 +301,8 @@ namespace turbo::scheduler {
                     continue;
                 }
 
-                for(size_t t = 0; t < proc->threads.size(); t++){
-                    thread_t *thread = proc->threads[t];
+                for(size_t t = 0; t < proc->threadsVec.size(); t++){
+                    thread_t *thread = proc->threadsVec[t];
                     if(thread->state != READY){
                         continue;
                     }
@@ -317,14 +316,14 @@ namespace turbo::scheduler {
             goto nofree;
         }
         else{
-            this_thread()->regs = *regs;
+            this_thread()->thread_regs = *regs;
 
             if(this_thread()->state == RUNNING){
                 this_thread()->state = READY;
             }
 
-            for (size_t t = this_proc()->threads.find(this_thread()) + 1; t < this_proc()->threads.size(); t++){
-                thread_t *thread = this_proc()->threads[t];
+            for (size_t t = this_proc()->threadsVec.find(this_thread()) + 1; t < this_proc()->threadsVec.size(); t++){
+                thread_t *thread = this_proc()->threadsVec[t];
 
                 if(this_proc()->state != READY){
                     break;
@@ -345,8 +344,8 @@ namespace turbo::scheduler {
                     continue;
                 }
 
-                for (size_t t = 0; t < proc->threads.size(); t++){
-                    thread_t *thread = proc->threads[t];
+                for (size_t t = 0; t < proc->threadsVec.size(); t++){
+                    thread_t *thread = proc->threadsVec[t];
                     if(thread->state != READY){
                         continue;
                     }
@@ -365,8 +364,8 @@ namespace turbo::scheduler {
                     continue;
                 }
 
-                for(size_t t = 0; t < proc->threads.size(); t++){
-                    thread_t *thread = proc->threads[t];
+                for(size_t t = 0; t < proc->threadsVec.size(); t++){
+                    thread_t *thread = proc->threadsVec[t];
                     if(thread->state != READY){
                         continue;
                     }
@@ -384,10 +383,10 @@ namespace turbo::scheduler {
 
         success:;
         this_thread()->state = RUNNING;
-        *regs = this_thread()->regs;
+        *regs = this_thread()->thread_regs;
         vMemory::switchPagemap(this_proc()->pagemap);
 
-        serial::log("Running process[%d]->thread[%d] on CPU core %zu", this_proc()->pid - 1, this_thread()->tid - 1, thisCPU->lapicID);
+        //serial::log("Running process[%d]->thread[%d] on CPU core %zu", this_proc()->pid - 1, this_thread()->tid - 1, thisCPU->lapicID);
 
         sched_lock.unlock();
         _yield(timeslice);
@@ -397,19 +396,19 @@ namespace turbo::scheduler {
         clean_proc(this_proc());
 
         if (thisCPU->idleP == nullptr){
-            thisCPU->idleP = proc_alloc("Idle", reinterpret_cast<uint64_t>(idle), 0);
+            thisCPU->idleP = allocProc("Idle", reinterpret_cast<uint64_t>(idle), 0);
             thread_count--;
         }
 
         thisCPU->currentProcess = thisCPU->idleP;
-        thisCPU->currentThread = thisCPU->idleP->threads[0];
+        thisCPU->currentThread = thisCPU->idleP->threadsVec[0];
         timeslice = this_thread()->sliceOfTime;
 
         this_thread()->state = RUNNING;
-        *regs = this_thread()->regs;
+        *regs = this_thread()->thread_regs;
         vMemory::switchPagemap(this_proc()->pagemap);
 
-        serial::log("Running Idle process on CPU core %zu", thisCPU->lapicID);
+        //serial::log("Running Idle process on CPU core %zu", thisCPU->lapicID);
 
         sched_lock.unlock();
         _yield();

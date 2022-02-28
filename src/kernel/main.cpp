@@ -38,7 +38,9 @@ namespace turbo {
 				}
 				size++;
 			}
+			ssfn::setColor(ssfn::fgcolor, 0xFF0000); // red
 			ssfn::printfAt(0,0,"%s", rtc::getTime());
+			ssfn::printfAt(0, 1, "FREE RAM: %zu KB", (pMemory::getFreeRam() / 1024 / 1024));
 		}
 	}
 
@@ -118,9 +120,9 @@ namespace turbo {
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
 		//turbo::shell::run();
-		scheduler::proc_create("Init", (uint64_t)turbo::shell::run, 0);
+		scheduler::createProc("Init", (uint64_t)turbo::shell::run, 0);
 		turbo::serial::log("Starting shell");
-		scheduler::thread_create((uint64_t)myTime, 0, scheduler::initproc);
+		scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
 
 		printf("good2\n");
 		//turbo::shell::run();
