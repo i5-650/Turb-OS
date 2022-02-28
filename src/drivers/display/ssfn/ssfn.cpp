@@ -2,6 +2,7 @@
 #include <drivers/display/terminal/terminal.hpp>
 #define SSFN_CONSOLEBITMAP_TRUECOLOR
 #include <ssfn.h>
+#include <kernel/kernel.hpp>
 
 
 namespace turbo::ssfn{

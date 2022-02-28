@@ -5,202 +5,153 @@
 #include <stivale2.h>
 #include <lib/lock.hpp>
 #include <lib/math.hpp>
+#include <kernel/kernel.hpp>
 
 namespace turbo::pMemory {
-
-	Bitmap pageBitmap;
+	Bitmap bitmap;
 	bool isInit = false;
+	static uintptr_t highPage = 0;
+	static size_t last = 0;
+	static size_t usedRam = 0;
+	static size_t freeRam = 0;
 
-	uint64_t freeRAM;
-	uint64_t reservedRAM;
-	uint64_t usedRAM;
+	DEFINE_LOCK(mmLock);
 
-	uintptr_t highestPage = 0;
-
-	extern "C" uint64_t __kernelstart;
-	extern "C" uint64_t __kernelend;
-
-
-	void init(){
-		serial::log("[+] Initialising physical Memory");
-
-		if (isInit){
-			serial::log("[!!] Already init: physical Memory\n");
-			return;
-		}
-
-		for (size_t i = 0; i < mmap_tag->entries; i++){
-			if (mmap_tag->memmap[i].type != STIVALE2_MMAP_USABLE){
-				continue;
-			}
-
-			uintptr_t top = mmap_tag->memmap[i].base;
-
-			if (top > highestPage){
-				highestPage = top;
-			}
-		}
-
-		uint64_t memsize = getmemsize();
-		freeRAM = memsize;
-		uint64_t bitmapSize = memsize / 4096 / 8 + 1;
-
-		Bitmap_init(bitmapSize, highestPage);
-
-		reservePages(0, memsize / 4096 + 1);
-		for (size_t i = 0; i < mmap_tag->entries; i++){
-			if (mmap_tag->memmap[i].type != STIVALE2_MMAP_USABLE){
-				continue;
-			}
-			unreservePages((void*)mmap_tag->memmap[i].base, mmap_tag->memmap[i].length / 4096);
-		}
-		reservePages(0, 0x100);
-		lockPages(pageBitmap.buffer, pageBitmap.size / 4096 + 1);
-
-		uint64_t kernelSize = (uint64_t)&__kernelend - (uint64_t)&__kernelstart;
-		uint64_t kernelPageCount = (uint64_t)kernelSize / 4096 + 1;
-
-		pMemory::lockPages((void*)&__kernelstart, kernelPageCount);
-
-		serial::newline();
-		isInit = true;
-	}
-
-	void Bitmap_init(size_t bitmapSize, uintptr_t bufferAddress){
-		pageBitmap.size = bitmapSize;
-		pageBitmap.buffer = (uint8_t*)bufferAddress;
-
-		for (size_t i = 0; i < bitmapSize; i++){
-			*(uint8_t*)(pageBitmap.buffer + i) = 0;
-		}
-	}
-
-	uint64_t pageBitmapIndex = 0;
-	void *requestPage(){
-		for (; pageBitmapIndex < pageBitmap.size * 8; pageBitmapIndex++){
-			if (pageBitmap[pageBitmapIndex] == true){
-				continue;
-			}
-			lockPage((void*)(pageBitmapIndex * 4096));
-			return (void*)(pageBitmapIndex * 4096);
-		}
-		return NULL;
-	}
-
-	// TODO change this awful code
-	void *requestPages(uint64_t count){
-		while (pageBitmapIndex < pageBitmap.size * 8){
-			for (uint64_t i = 0; i < count; i++){
-				if (pageBitmap[pageBitmapIndex + i] == true){
-					pageBitmapIndex += i + 1;
-					goto notfree;
+	static void* ohMyAlloc(size_t count, size_t limit){
+		size_t p = 0;
+		while(last < limit){
+			if(!bitmap[last++]){
+				if(++p == count){
+					size_t page = last - count;
+					for(size_t i = page; i < last; ++i){
+						bitmap.set(i, true);
+					}
+					return ((void*) (page * 0x1000));
 				}
 			}
-			goto exit;
-			notfree:
-				continue;
-			
-			exit: {
-				void* page = (void*)(pageBitmapIndex * 4096);
-				pageBitmapIndex += count;
-				lockPages(page, count);
-				return page;
+			else {
+				p = 0;
 			}
 		}
 		return nullptr;
 	}
 
-	void freePage(void *address){
-		uint64_t index = (uint64_t)address / 4096;
+	void* alloc(size_t count){
+		mmLock.lock();
+		size_t tmp = last;
+		void* ret = ohMyAlloc(count, highPage / 0x1000);
+		if(!ret){
+			last = 0;
+			ret = ohMyAlloc(count, tmp);
+		}
+
+		memset(ret, 0, count * 0x1000);
+		usedRam += count * 0x1000;
+		freeRam -= count * 0x1000;
+		mmLock.unlock();
+		return ret;
+	}
+
+	void free(void* ptr, size_t count){
+		if(!ptr){
+			return;
+		}
+		mmLock.lock();
+		size_t page = ((size_t)ptr) / 0x1000;
+		for(size_t i = page; i < page + count; i++){
+			bitmap.set(i, false);
+		}
+		if(last > page){
+			last = page;
+		}
+
+		usedRam -= count * 0x1000;
+		freeRam += count * 0x1000;
+		mmLock.unlock();
+	}
+
+	void* realloc(void* ptr, size_t oldSize, size_t newSize){
+		if(!ptr){
+			serial::log("j'aime");
+			return alloc(newSize);
+		}
 		
-		if (pageBitmap[index] == false){
+		if(!newSize){
+			free(ptr, oldSize);
+			return nullptr;
+		}
+
+		usedRam = usedRam - oldSize * 0x1000 + newSize * 0x1000;
+		freeRam = freeRam + oldSize * 0x1000 - newSize * 0x1000;
+
+		if(newSize < oldSize){
+			oldSize = newSize;
+		}
+
+		void* newFrag = alloc(newSize);
+		memcpy(newFrag, ptr, oldSize);
+		free(ptr);
+		return newFrag;
+	}
+
+	size_t getFreeRam(){
+		return freeRam;
+	}
+
+	size_t getUsedRam(){
+		return usedRam;
+	}
+
+
+	void init(){
+		serial::log("[+] Initialising pMemory");
+		if(isInit){
+			serial::log("[!!] Already Init");
 			return;
 		}
 
-		if (pageBitmap.set(index, false)){
-			freeRAM += 4096;
-			usedRAM -= 4096;
-			
-			if (pageBitmapIndex > index){
-				pageBitmapIndex = index;
+		for(size_t i = 0; i < mmap_tag->entries; i++){
+			if(mmap_tag->memmap[i].type != STIVALE2_MMAP_USABLE){
+				continue;
+			}
+
+			uintptr_t top = mmap_tag->memmap[i].base + mmap_tag->memmap[i].length;
+			freeRam += mmap_tag->memmap[i].length;
+
+			if(top > highPage){
+				highPage = top;
 			}
 		}
-	}
 
-	void freePages(void *address, uint64_t pageCount){
-		for (size_t i = 0; i < pageCount; i++){
-			freePage((void*)((uint64_t)address + (i * 4096)));
-		}
-	}
+		size_t bitmapSize = ALIGN_UP((highPage / 0x1000) / 8, 0x1000);
 
-	void lockPage(void *address){
-		uint64_t index = (uint64_t)address / 4096;
+		for(size_t i = 0; i < mmap_tag->entries; i++){
+			if(mmap_tag->memmap[i].type != STIVALE2_MMAP_USABLE){
+				continue;
+			}
 
-		if (pageBitmap[index] == true){
-			return;
-		}
-
-		if (pageBitmap.set(index, true)){
-			freeRAM -= 4096;
-			usedRAM += 4096;
-		}
-	}
-
-	void lockPages(void *address, uint64_t pageCount){
-		for (uint64_t i = 0; i < pageCount; i++){
-			lockPage((void*)((uint64_t)address + (i * 4096)));
-		}
-	}
-
-	void unreservePage(void *address){
-		uint64_t index = (uint64_t)address / 4096;
-		if (pageBitmap[index] == false){
-			return;
-		}
-
-		if (pageBitmap.set(index, false)){
-			freeRAM += 4096;
-			reservedRAM-= 4096;
-
-			if (pageBitmapIndex > index){
-				pageBitmapIndex = index;
+			if(mmap_tag->memmap[i].length >= bitmapSize){
+				bitmap.buffer = (uint8_t*) mmap_tag->memmap[i].base;
+				memset(bitmap.buffer, 0xFF, bitmapSize);
+				mmap_tag->memmap[i].length -= bitmapSize;
+				mmap_tag->memmap[i].base += bitmapSize;
+				freeRam -= bitmapSize;
+				break;
 			}
 		}
-	}
 
-	void unreservePages(void *address, uint64_t pageCount){
-		for (uint64_t i = 0; i < pageCount; i++){
-			unreservePage((void*)((uint64_t)address + (i * 4096)));
-		}
-	}
+		for(size_t i = 0; i < mmap_tag->entries; i++){
+			if(mmap_tag->memmap[i].type != STIVALE2_MMAP_USABLE){
+				continue;
+			}
 
-	void reservePage(void *address){
-		uint64_t index = (uint64_t)address / 4096;
-		if (pageBitmap[index] == true){
-			return;
+			for(uintptr_t j = 0; j < mmap_tag->memmap[i].length; j += 0x1000){
+				bitmap.set((mmap_tag->memmap[i].base + j) / 0x1000, false);
+			}
 		}
 
-		if (pageBitmap.set(index, true)){
-			freeRAM -= 4096;
-			reservedRAM += 4096;
-		}
+		serial::newline();
+		isInit = true;
 	}
 
-	void reservePages(void *address, uint64_t pageCount){
-		for (uint64_t i = 0; i < pageCount; i++){
-			reservePage((void*)((uint64_t)address + (i * 4096)));
-		}
-	}
-
-	uint64_t getFreeRam(){
-		return freeRAM;
-	}
-
-	uint64_t getUsedRam(){
-		return usedRAM;
-	}
-
-	uint64_t getReservedRam(){
-		return reservedRAM;
-	}
 }

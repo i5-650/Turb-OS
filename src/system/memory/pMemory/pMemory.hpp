@@ -5,27 +5,15 @@
 #include <stdint.h>
 
 namespace turbo::pMemory {
-
-	extern Bitmap pageBitmap;
+	extern Bitmap bitmap;
 	extern bool isInit;
 
-	void freePage(void *address);
-	void lockPage(void *address);
-	void freePages(void *address, uint64_t pageCount);
-	void lockPages(void *address, uint64_t pageCount);
+	void* alloc(size_t count = 1);
+	void* realloc(void* ptr, size_t oldSize = 1, size_t newSize = 1);
+	void free(void* ptr, size_t size = 1);
 
-	void *requestPage();
-	void *requestPages(uint64_t count);
-
-	uint64_t getFreeRam();
-	uint64_t getUsedRam();
-	uint64_t getReservedRam();
-
-	void Bitmap_init(size_t bitmapSize, uintptr_t bufferAddr);
-	void reservePage(void *address);
-	void unreservePage(void *address);
-	void reservePages(void *address, uint64_t pageCount);
-	void unreservePages(void *address, uint64_t pageCount);
+	size_t getFreeRam();
+	size_t getUsedRam();
 
 	void init();
 }

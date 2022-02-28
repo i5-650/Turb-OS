@@ -5,6 +5,7 @@
 #include <system/CPU/IDT/idt.hpp>
 #include <lib/portIO.hpp>
 #include <lib/cpu/cpu.hpp>
+#include <kernel/kernel.hpp>
 
 using namespace turbo;
 

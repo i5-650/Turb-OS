@@ -2,6 +2,7 @@
 #include <drivers/display/serial/serial.hpp>
 #include <lib/string.hpp>
 #include <lib/lock.hpp>
+#include <kernel/kernel.hpp>
 
 
 namespace turbo::vfs{
@@ -148,7 +149,7 @@ namespace turbo::vfs{
         if(!parent){
             parent = tfs_root;
         }
-        tfs_node_t *node = static_cast<tfs_node_t*>(turbo::heap::calloc(1,sizeof(tfs_node_t)));
+        tfs_node_t *node = static_cast<tfs_node_t*>(calloc(1,sizeof(tfs_node_t)));
         strcpy(node->name,name);
         node->parent = parent;
         node->fs = parent->fs;
@@ -164,10 +165,10 @@ namespace turbo::vfs{
             tfs_node_t *node = parent->childs[i];
             if(!strcmp(node->name,name)){
                 for(size_t i = 0;i < node->childs.getLength();i++){
-                    turbo::heap::free(node->childs[i]);
+                    free(node->childs[i]);
                 }
                 node->childs.destroy();
-                turbo::heap::free(node);
+                free(node);
                 parent->childs.remove(i);
                 return;
             }

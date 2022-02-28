@@ -11,8 +11,6 @@
 #include <system/ACPI/acpi.hpp>
 #include <lib/cpu/cpu.hpp>
 
-using namespace turbo::heap;
-
 namespace turbo::keyboard {
 	bool isInit = false;
 

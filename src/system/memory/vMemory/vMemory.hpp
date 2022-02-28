@@ -1,26 +1,27 @@
-#pragma once 
+#pragma once
 
+#include <lib/lock.hpp>
 #include <stdint.h>
 #include <stddef.h>
 
 namespace turbo::vMemory {
 
 	enum PT_Flag{
-		present = ((uint64_t)1 << 0),
-		readWrite = ((uint64_t)1 << 1),
-		userSuper = ((uint64_t)1 << 2),
-		writeThrough = ((uint64_t)1 << 3),
-		cacheDisable = ((uint64_t)1 << 4),
-		accessed = ((uint64_t)1 << 5),
-		largerPages = ((uint64_t)1 << 7),
-		custom0 = ((uint64_t)1 << 9),
-		custom1 = ((uint64_t)1 << 10),
-		custom2 = ((uint64_t)1 << 11),
-		NX = ((uint64_t)1 << 63)
+		present = (1 << 0),
+		readNwrite = (1 << 1),
+		userSuper = (1 << 2),
+		writeThrough = (1 << 3),
+		cacheDisable = (1 << 4),
+		accessed = (1 << 5),
+		largerPages = (1 << 7),
+		custom0 = (1 << 9),
+		custom1 = (1 << 10),
+		custom2 = (1 << 11),
+		NX = (1UL << 63)
 	};
 
 	struct PDEntry{
-		uint64_t value;
+		uint64_t value = 0;
 
 		void setFlag(PT_Flag flag, bool enabled);
 		void setFlags(uint64_t flags, bool enabled);
@@ -37,23 +38,29 @@ namespace turbo::vMemory {
 	};
 
 	struct Pagemap{
-		PTable *PML4;
+		lock_t lock;
+		PTable *TOPLVL = nullptr;
 
-		void mapMem(uint64_t vaddr, uint64_t paddr, uint64_t flags = (present | readWrite));
-		void mapUserMem(uint64_t vaddr, uint64_t paddr, uint64_t flags = (present | readWrite));
+		PDEntry &virt2pte(uint64_t vaddr);
+
+		void mapMem(uint64_t vaddr, uint64_t paddr, uint64_t flags = (present | readNwrite));
+		void remapMem(uint64_t vaddr_old, uint64_t vaddr_new, uint64_t flags = (present | readNwrite));
+		void mapUserMem(uint64_t vaddr, uint64_t paddr, uint64_t flags = (present | readNwrite));
+		void mapHHMem(uint64_t paddr, uint64_t flags = (present | readNwrite));
 		void unmapMem(uint64_t vaddr);
-		void remapMem(uint64_t vaddressOld, uint64_t vaddressNew, uint64_t flags = (present | readWrite));
 
-		void setFlags(uint64_t vaddress, uint64_t flags);
-		void removeFlags(uint64_t vaddress, uint64_t flags);
+		void setFlags(uint64_t vaddr, uint64_t flags);
+		void remFlags(uint64_t vaddr, uint64_t flags);
 	};
 
 	extern bool isInit;
+	extern bool lvl5;
 	extern Pagemap *kernel_pagemap;
 
 	Pagemap *newPagemap();
 	Pagemap *clonePagemap(Pagemap *old);
 	void switchPagemap(Pagemap *pmap);
+	PTable *getPagemap();
 
 	void init();
 }

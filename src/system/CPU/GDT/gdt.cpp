@@ -11,17 +11,18 @@ namespace turbo::gdt {
 
 	[[gnu::aligned(0x1000)]]
 	GDT DefaultGDT = {
-		{0x0000, 0, 0, 0x00, 0x00, 0},
-		{0xFFFF, 0, 0, 0x9A, 0x80, 0},
-		{0xFFFF, 0, 0, 0x92, 0x80, 0},
-		{0xFFFF, 0, 0, 0x9A, 0xCF, 0},
-		{0xFFFF, 0, 0, 0x92, 0xCF, 0},
-		{0x0000, 0, 0, 0x9A, 0xA2, 0},
-		{0x0000, 0, 0, 0x92, 0xA0, 0},
-		{0x0000, 0, 0, 0xF2, 0x00, 0},
-		{0x0000, 0, 0, 0xFA, 0x20, 0},
-		{0x0000, 0, 0, 0x89, 0x00, 0}
-	};
+		{0x0000, 0, 0, 0x00, 0x00, 0}, // NULL
+		{0xFFFF, 0, 0, 0x9A, 0x00, 0}, // 16 Bit code
+		{0xFFFF, 0, 0, 0x92, 0x00, 0}, // 16 Bit data
+		{0xFFFF, 0, 0, 0x9A, 0xCF, 0}, // 32 Bit code
+		{0xFFFF, 0, 0, 0x92, 0xCF, 0}, // 32 Bit data
+		{0x0000, 0, 0, 0x9A, 0x20, 0}, // 64 Bit code
+		{0x0000, 0, 0, 0x92, 0x00, 0}, // 64 Bit data
+		{0x0000, 0, 0, 0xF2, 0x00, 0}, // User data
+		{0x0000, 0, 0, 0xFA, 0x20, 0}, // User code
+		{0x0000, 0, 0, 0x89, 0x00, 0, 0, 0} // TSS
+};
+
 
 	DEFINE_LOCK(gdt_lock);
 	bool isInit = false;
@@ -51,8 +52,6 @@ namespace turbo::gdt {
 		DefaultGDT.Tss.base3 = base >> 32;
 		DefaultGDT.Tss.Reserved = 0x00;
 
-		//tss[cpu].IOPBOffset = sizeof(TSS);
-
 		reloadGDT();
 		reloadTSS();
 
@@ -67,7 +66,7 @@ namespace turbo::gdt {
 			return;
 		}
 
-		tss = (TSS*)heap::calloc(smp_tag->cpu_count, sizeof(TSS));
+		tss = (TSS*)calloc(smp_tag->cpu_count, sizeof(TSS));
 
 		gdtDescriptor.size = sizeof(GDT) - 1;
 		gdtDescriptor.offset = (uint64_t)&DefaultGDT;

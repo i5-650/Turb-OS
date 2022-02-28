@@ -7,6 +7,8 @@ KERNEL := $(SOURCEDIR)/kernel.elf
 ISO := $(SOURCEDIR)/../image.iso
 DISK = $(SOURCEDIR)/../disk.img
 
+LVL5_PAGING = 0
+
 CC = clang
 CPP = clang++
 LD = ld.lld
@@ -28,54 +30,59 @@ XORRISOFLAGS = -as mkisofs -b limine-cd.bin \
 		--efi-boot limine-eltorito-efi.bin -efi-boot-part \
 		--efi-boot-image --protective-msdos-label
 
-CFLAGS = -Ofast -pipe -Werror
+CFLAGS = -Ofast -pipe -Werror -DLVL5_PAGING=$(LVL5_PAGING)
 
-CPPFLAGS = -Ofast -pipe -Werror -Wno-c99-designator 
+CPPFLAGS = -Ofast -pipe -Werror -Wno-c99-designator -DLVL5_PAGING=$(LVL5_PAGING)
 
 LDFLAGS = 
 ASMFLAGS = -f elf64 -g
 
-INTERNALLDFLAGS :=           \
+override INTERNALLDFLAGS :=  \
 	-T$(SOURCEDIR)/linker.ld \
 	-nostdlib                \
 	-zmax-page-size=0x1000   \
-	-static                  \
-	-pie                     \
-	--no-dynamic-linker     \
-	-ztext
+	-static
 
-INTERNALCFLAGS  :=             \
+override INTERNALCFLAGS :=     \
 	-target x86_64-pc-none-elf \
 	-I$(SOURCEDIR)/            \
 	-std=gnu17                 \
 	-ffreestanding             \
 	-fno-exceptions            \
 	-fno-stack-protector       \
+	-fno-use-cxa-atexit        \
+	-fno-omit-frame-pointer    \
 	-fsanitize=undefined       \
-	-fpie                      \
+	-fno-rtti                  \
+	-fno-pic                   \
+	-mabi=sysv                 \
 	-mno-80387                 \
 	-mno-mmx                   \
 	-mno-3dnow                 \
-	-mno-red-zone              \
 	-mno-sse                   \
 	-mno-sse2                  \
+	-mno-red-zone              \
 	-mcmodel=kernel
 
-INTERNALCPPFLAGS  :=           \
+override INTERNALCPPFLAGS :=   \
 	-target x86_64-pc-none-elf \
 	-I$(SOURCEDIR)/            \
 	-std=gnu++17               \
 	-ffreestanding             \
 	-fno-exceptions            \
 	-fno-stack-protector       \
+	-fno-use-cxa-atexit        \
 	-fsanitize=undefined       \
-	-fpie                      \
+	-fno-omit-frame-pointer    \
+	-fno-rtti                  \
+	-fno-pic                   \
+	-mabi=sysv                 \
 	-mno-80387                 \
 	-mno-mmx                   \
 	-mno-3dnow                 \
-	-mno-red-zone              \
 	-mno-sse                   \
 	-mno-sse2                  \
+	-mno-red-zone              \
 	-mcmodel=kernel
 
 CFILES = $(shell find $(SOURCEDIR)/ -type f -name '*.c' -not -path "$(SOURCEDIR)/initrd/*")
@@ -131,4 +138,4 @@ endif
 run:
 	echo "Turbooting \n"
 	echo $(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D log.txt -machine smm=off -cdrom image.iso
-	$(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -cdrom $(ISO) -drive if=pflash,format=raw,unit=0,file=$(SOURCEDIR)/../ovmf/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(SOURCEDIR)/../ovmf/OVMF_VARS-pure-efi.fd
+	$(QEMU) $(QEMUFLAGS) -no-shutdown -cdrom $(ISO) -drive if=pflash,format=raw,unit=0,file=$(SOURCEDIR)/../OVMF/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(SOURCEDIR)/../OVMF/OVMF_VARS-pure-efi.fd

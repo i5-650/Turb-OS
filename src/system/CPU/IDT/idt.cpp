@@ -139,7 +139,7 @@ namespace turbo::idt {
 		printf("PANIC System halted!\n");
 		serial::log("[/!\\]System halted\n");
 
-		if(scheduler::getThisThread()->state == scheduler::RUNNING){
+		if(scheduler::this_thread()->state == scheduler::RUNNING){
 			asm volatile ("cli");
 			thisCPU->currentThread->state = scheduler::READY;
 			asm volatile ("sti");

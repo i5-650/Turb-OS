@@ -4,8 +4,8 @@
 #include <kernel/main.hpp>
 #include <lib/string.hpp>
 #include <lib/memory/memory.hpp>
+#include <kernel/kernel.hpp>
 
-using namespace turbo::heap;
 
 
 namespace turbo::framebuffer {

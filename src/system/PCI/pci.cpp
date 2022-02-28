@@ -6,7 +6,6 @@
 #include <lib/portIO.hpp>
 #include <system/ACPI/acpi.hpp>
 
-using namespace turbo::heap;
 
 namespace turbo::pci {
 

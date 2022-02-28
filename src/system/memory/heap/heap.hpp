@@ -1,49 +1,71 @@
-#pragma once 
+#pragma once
 
+#include <lib/lock.hpp>
 #include <stdint.h>
 #include <stddef.h>
 
-namespace turbo::heap {
+#define INIT_PAGES 512
 
-	#define BLOCK_SIZE 0x8
+struct HeapBlock
+{
+    size_t size;
+    bool free;
+};
 
-	// in C++, struct are class but with everything public and
-	// aligned in memory + the functions aren't really stored in
-	// the struct, that's why we will use struct here
-	struct HeapSegmentHeader {
-		size_t length;
-		struct HeapSegmentHeader *nextSegment;
-		struct HeapSegmentHeader *lastSegment;
-		bool isFree;
-		void mergeCurrentNextToLast();
-		void mergeCurrentToLast();
-		void mergeNextToCurrent();
-		void split(size_t length); 
-	};
+class Heap {
+    private:
+    HeapBlock *head = nullptr;
+    HeapBlock *tail = nullptr;
+    void *data = nullptr;
+    bool expanded = false;
+    lock_t lock;
 
-	extern bool isInit;
-	
-	extern struct HeapSegmentHeader* head;
-	extern struct HeapSegmentHeader* tail;
+    HeapBlock *next(HeapBlock *block);
+    HeapBlock *split(HeapBlock *block, size_t size);
 
-	extern size_t totalSize;
-	extern size_t freeSize;
-	extern size_t usedSize;
+    HeapBlock *find_best(size_t size);
+    size_t required_size(size_t size);
+    void coalescence();
 
-	extern void *heapEnd;
+    public:
+    bool debug = false;
+    size_t pages = 0;
 
-	void init(void* heapAddress = (void*)0x0000100000000000, size_t pageCount = 0x10);
+    void expand(size_t pagecount = 16);
+    void setsize(size_t pagecount);
 
-	size_t getSize(void* ptr);
+    void *malloc(size_t size);
+    void *calloc(size_t num, size_t size);
+    void *realloc(void *ptr, size_t size);
+    void free(void *ptr);
 
-	void *malloc(size_t size);
-	void *calloc(size_t m, size_t n);
-	void *realloc(void* ptr, size_t size);
-	void free(void* address);
+    size_t allocsize(void *ptr);
+};
 
-	void expandHeap(size_t length);
+extern Heap turboHeap;
+
+static inline void *malloc(size_t size, bool calloc = true){
+    if(calloc){
+		return turboHeap.calloc(1, size);
+	}
+    return turboHeap.malloc(size);
+}
+static inline void *calloc(size_t num, size_t size){
+    return turboHeap.calloc(num, size);
+}
+static inline void *realloc(void *ptr, size_t size){
+    return turboHeap.realloc(ptr, size);
+}
+static inline void free(void *ptr){
+    turboHeap.free(ptr);
+}
+
+static inline size_t allocsize(void *ptr){
+    return turboHeap.allocsize(ptr);
 }
 
 void *operator new(size_t size);
 void *operator new[](size_t size);
-void operator delete(void* ptr);
+
+void operator delete(void *ptr);
+void operator delete[](void *ptr);

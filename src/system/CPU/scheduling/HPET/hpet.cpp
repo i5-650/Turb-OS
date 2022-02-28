@@ -39,7 +39,7 @@ namespace turbo::hpet{
 		uSleep(SECS(seconds));
 	}
 	
-	void init(uint64_t freq){
+	void init(){
 		turbo::serial::log("HPET : init start\n");
 
 		if (isInit){

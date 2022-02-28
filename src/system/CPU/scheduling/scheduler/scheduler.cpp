@@ -1,471 +1,432 @@
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
+#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
+#include <system/CPU/scheduling/PIT/pit.hpp>
 #include <system/CPU/APIC/apic.hpp>
 #include <system/CPU/IDT/idt.hpp>
 #include <system/CPU/SMP/smp.hpp>
 #include <kernel/kernel.hpp>
-#include <drivers/display/serial/serial.hpp>
 #include <lib/string.hpp>
+#include <drivers/display/serial/serial.hpp>
 #include <lib/TurboVector/TurboVector.hpp>
-#include <lib/lock.hpp>
 #include <system/memory/heap/heap.hpp>
-#include <lib/panic.hpp>
-#include <drivers/display/terminal/printf.h>
-#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
-#include <system/CPU/scheduling/PIT/pit.hpp>
-using namespace turbo;
-using namespace turbo::heap;
-
-#define DEFAULT_TIMESLICE 5
-
 
 namespace turbo::scheduler {
-	bool isInit = false;
-	
-	static uint64_t nextPID = 1;
-	static uint8_t schedulerVector = 0;
-
-	TurboVector<process_t*> processTable;
-
-	process_t* initProc = nullptr;
-
-	size_t processesCounter = 0;
-	size_t threadsCounter = 0;
-
-	// defines locks
-	DEFINE_LOCK(threadLock);
-	DEFINE_LOCK(schedLock);
-	DEFINE_LOCK(processLock);
-
-	// usefull functions
-	void _idle(){
-		while(true){
-			asm volatile("hlt");
-		}
-	}
-
-	void _yield(uint64_t mSeconds){
-		if(apic::isInit){
-			apic::lapicOneShot(schedulerVector, mSeconds);
-		}
-		else {
-			pit::setFrequence(MS_TO_PIT(mSeconds));
-		}
-	}
-
-	// threads
-	thread_t* allocThread(uint64_t address, uint64_t args){
-		threadLock.lock();
-		serial::log("in it");
-
-		thread_t* myThread = (thread_t*) malloc(sizeof(thread_t));
-
-		serial::log("alloc ok");
-		myThread->state = INITIAL_STATE;
-		myThread->threadStack = (uint8_t*)malloc(STACK_SIZE);
-		serial::log("alloc stack");
-
-		myThread->threadRegisters.rflags = 0x202;
-		myThread->threadRegisters.cs = 0x28;
-		myThread->threadRegisters.ss = 0x30;
-		serial::log("regs");
-		myThread->threadRegisters.rip = address;
-		myThread->threadRegisters.rdi = (uint64_t)(args);
-		myThread->threadRegisters.rsp = (uint64_t)(myThread->threadStack) + STACK_SIZE;
-		
-		myThread->parent = nullptr;
-
-		threadLock.unlock();
-		serial::log("now return");
-		return myThread;
-	}
-
-	thread_t* createThread(uint64_t address, uint64_t args, process_t* parent){
-		thread_t* myThread = allocThread(address, args);
-		
-		if(parent){
-			myThread->TID = parent->nextTID++;
-			myThread->parent = parent;
-			parent->threads.push_back(myThread);
-		}
-
-		threadsCounter++;
-		threadLock.lock();
-		myThread->state = READY;
-		threadLock.unlock();
-
-		return myThread;
-	}
-
-	thread_t* getThisThread(){
-		asm volatile("cli");
-		thread_t* t = thisCPU->currentThread;
-		asm volatile("sti");
-		return t;
-	}
-
-	void blockThread(){
-		asm volatile("cli");
-		
-		if(getThisThread()->state == READY || getThisThread()->state == RUNNING){
-			getThisThread()->state = BLOCKED;
-			// debug purpose
-			serial::log("[BLOCK] TID: %d PID: %d\n", getThisThread()->TID, getThisProcess()->PID);
-		}
-
-		asm volatile("sti");
-		_yield();
-	}
-
-	void blockThread(thread_t* t){
-		asm volatile("cli");
-		
-		if(getThisThread()->state == READY || getThisThread()->state == RUNNING){
-			t->state = BLOCKED;
-			// debug purpose
-			serial::log("[BLOCK] TID: %d PID: %d\n", t->TID, t->parent->PID);
-		}
-
-		asm volatile("sti");
-	}
-
-	void unblockThread(thread_t* t){
-		asm volatile("cli");
-
-		if(t->state == BLOCKED){
-			t->state = READY;
-
-			//serial::log("[UNBLOCK] TID: %d\n", t->TID);
-		}
-
-		asm volatile("sti");
-	}
-
-	void exitThread(){
-		asm volatile("cli");
-
-		if(getThisProcess() == initProc 
-		&& getThisProcess()->threads.getLength() == 1 
-		&& getThisProcess()->children.getLength() == 0){
-			serial::log("[ERROR] init proc can't be killed ! \n");
-		}
-
-		getThisThread()->state = KILLED;
-		serial::log("[EXIT] PID: %d", getThisProcess()->PID);
-		asm volatile("sti");
-		_yield();
-		while(true){
-			asm volatile("hlt");
-		}
-	}
-
-	// processes
-	process_t* allocProcess(const char* name, uint64_t address, uint64_t args){
-		process_t* p = new process_t;
-
-		processLock.lock();
-		strncpy(p->name, name, (strlen(name) < 128) ? strlen(name) : 128);
-		p->PID = nextPID++;
-		p->state = INITIAL_STATE;
-		p->processPagemap = vMemory::newPagemap();
-		p->parent = nullptr;
-
-		if(address){
-			createThread(address, args, p);
-		}
-
-		if(!isInit){
-			initProc = p;
-			isInit = true;
-		}
-		processLock.unlock();
-
-		return p;
-	}
-
-	process_t* createProcess(const char* name, uint64_t address, uint64_t args){
-		process_t* p = allocProcess(name, address, args);
-
-		processTable.push_back(p);
-		processesCounter++;
-
-		processLock.lock();
-		p->state = READY;
-		processLock.unlock();
-
-		return p;
-	}
-
-	process_t* getThisProcess(){
-		asm volatile("cli");
-		process_t* p = thisCPU->currentProcess;
-		asm volatile("sti");
-		return p;
-	}
-
-	void blockProcess(){
-		asm volatile("cli");
-		if(getThisProcess() == initProc){
-			serial::log("[BLOCK] init process can't be blocked\n");
-			asm volatile("sti");
-			return;
-		}
-
-		if(getThisProcess()->state == READY || getThisProcess()->state == RUNNING){
-			getThisProcess()->state = BLOCKED;
-			serial::log("[BLOCK] PID: %d", getThisProcess()->PID);
-		}
-
-		asm volatile("sti");
-		_yield();
-	}
-
-	void blockProcess(process_t* p){
-		asm volatile("cli");
-
-		if(p->state == READY || p->state == RUNNING){
-			p->state = BLOCKED;
-			serial::log("[BLOCK] PID: %d", p->PID);
-		}
-
-		asm volatile("sti");
-	}
-
-	void unblockProcess(process_t* p){
-		asm volatile("cli");
-		if(p->state == BLOCKED){
-			p->state = READY;
-			serial::log("[UNBLOCK] PID: %d", p->PID);
-		}
-
-		asm volatile("sti");
-	}
-
-	void exitProcess(){
-		asm volatile("cli");
-
-		if(getThisProcess() == initProc){
-			serial::log("[ERROR] can't exit init proc");
-			return;
-		}
-
-		getThisProcess()->state = KILLED;
-		serial::log("[EXIT] PID: %d", getThisProcess()->PID);
-		asm volatile("sti");
-		_yield();
-		while(true){
-			asm volatile("hlt");
-		}
-	}
-
-	void cleanProcess(process_t* p){
-		if(p == nullptr){
-			return;
-		}
-
-		if(p->state == KILLED){
-			for(size_t i = 0; i < p->children.getLength(); ++i){
-				process_t* childProcess = p->children[i];
-				childProcess->state = KILLED;
-				cleanProcess(childProcess);
-			}
-
-			for(size_t i = 0; i < p->threads.getLength(); ++i){
-				p->threads.remove(p->threads.find(p->threads[i]));
-				free(p->threads[i]->threadStack);
-				free(p->threads[i]);
-				threadsCounter--;
-			}
-
-			process_t* parentProcess = p->parent;
-			if(parentProcess != nullptr){
-				parentProcess->children.remove(parentProcess->children.find(p));
-				if(parentProcess->children.getLength() == 0 && p->threads.getLength() == 0){
-					parentProcess->state = KILLED;
-					cleanProcess(parentProcess);
-				}
-			}
-
-			free(p->processPagemap);
-			free(p);
-			processesCounter--;
-		}
-		else {
-			for(size_t i = 0; i < p->threads.getLength(); ++i){
-				if(p->threads[i]->state == KILLED){
-					p->threads.remove(p->threads.find(p->threads[i]));
-					free(p->threads[i]->threadStack);
-					free(p->threads[i]);
-					threadsCounter--;
-				}
-			}
-
-			if(p->children.getLength() == 0 && p->threads.getLength() == 0){
-				p->state = KILLED;
-				cleanProcess(p);
-			}
-		}
-	}
-
-	void switchTask(registers_t* reg){
-		if(!isInit){
-			_yield();
-			return;
-		}
-
-		schedLock.lock();
-		uint64_t timeSlice = DEFAULT_TIMESLICE;
-
-		if(!getThisProcess() || !getThisThread()){
-			for(size_t i = 0; i < processTable.getLength(); ++i){
-				process_t* p = processTable[i];
-				if(p->state != READY){
-					cleanProcess(p);
-					continue;
-				}
-
-				for(size_t j = 0; j < p->threads.getLength(); ++j){
-					thread_t* t = p->threads[j];
-					if(t->state != READY){
-						continue;
-					}
-
-					thisCPU->currentProcess = p;
-					thisCPU->currentThread = t;
-					timeSlice = getThisThread()->sliceOfTime;
-					goto success;
-				}
-			}
-			goto nofree;
-		}
-		else {
-			getThisThread()->threadRegisters = *reg;
-
-			if(getThisThread()->state == RUNNING){
-				getThisThread()->state = READY;
-			}
-
-			for(size_t i = getThisProcess()->threads.find(getThisThread()) + 1; i < getThisProcess()->threads.getLength(); ++i){
-				thread_t* t = getThisProcess()->threads[i];
-
-				if(getThisProcess()->state != READY){
-					break;
-				}
-
-				if(t->state != READY){
-					continue;
-				}
-
-				thisCPU->currentProcess = getThisProcess();
-				thisCPU->currentThread = t;
-				timeSlice = getThisThread()->sliceOfTime;
-				goto success;
-			}
-
-			for(size_t i = 0; i < processTable.find(getThisProcess()) + 1; ++i){
-				process_t* p = processTable[i];
-				
-				if(p->state != READY){
-					continue;
-				}
-
-				for(size_t j = 0; j < p->threads.getLength(); ++j){
-					thread_t* t = p->threads[i];
-					if(t->state != READY){
-						continue;
-					}
-
-					cleanProcess(getThisProcess());
-
-					thisCPU->currentProcess = p;
-					thisCPU->currentThread = t;
-					timeSlice = getThisThread()->sliceOfTime;
-					goto success;
-				}
-			}
-
-			for(size_t i = 0; i < processTable.find(getThisProcess()) + 1; i++){
-				process_t* p = processTable[i];
-				if(p->state != READY){
-					continue;
-				}
-
-				for(size_t j = 0; j < p->threads.getLength(); j++){
-					thread_t* t = p->threads[j];
-					if(t->state != RUNNING){
-						continue;
-					}
-
-					cleanProcess(getThisProcess());
-
-					thisCPU->currentProcess = p;
-					thisCPU->currentThread = t;
-					timeSlice = getThisThread()->sliceOfTime;
-					goto success;
-				}
-			}
-		}
-		goto nofree;
-
-		success:
-		getThisThread()->state = RUNNING;
-		*reg = getThisThread()->threadRegisters;
-		vMemory::switchPagemap(getThisProcess()->processPagemap);
-		schedLock.unlock();
-		_yield(timeSlice);
-		return;
-
-
-		nofree:
-		cleanProcess(getThisProcess());
-		if(thisCPU->idleP == nullptr){
-			thisCPU->idleP = allocProcess("idle", (uint64_t)_idle, 0);
-			threadsCounter--;
-		}
-
-		thisCPU->currentProcess = thisCPU->idleP;
-		thisCPU->currentThread = thisCPU->idleP->threads[0];
-		timeSlice = getThisThread()->sliceOfTime;
-		getThisThread()->state = RUNNING;
-		*reg = getThisThread()->threadRegisters;
-		vMemory::switchPagemap(getThisProcess()->processPagemap);
-		schedLock.unlock();
-		_yield();
-	}
-
-
-
-	bool isIDTInit = false;
-
-	void init(){
-		while(!isInit){
-			asm volatile ("hlt");
-		}
-		if(apic::isInit){
-			serial::log("1");
-			if(schedulerVector == 0){
-				serial::log("2");
-				schedulerVector = idt::allocVector();
-				if(!isIDTInit){
-					serial::log("3");
-					idt::registerInterruptHandler(schedulerVector, switchTask);
-					idt::idtSetDescriptor(schedulerVector, idt::int_table[schedulerVector], 0x8E, 1);
-					isIDTInit = true;
-					serial::log("3.2");
-				}
-			}
-			serial::log("3.3");
-			apic::lapicPeriodic(schedulerVector);
-			serial::log("3.4");
-		}
-		else {
-			serial::log("4");
-			if(!isIDTInit){
-				serial::log("5");
-				idt::idtSetDescriptor(schedulerVector, idt::int_table[idt::IRQ0], 0x8E, 1);
-				isIDTInit = true;
-			}
-			turbo::pit::isScheduling = true;
-		}
-		serial::log("before while");
-	}   
+
+    bool isInit = false;
+    static uint64_t next_pid = 1;
+    static uint8_t sched_vector = 0;
+
+    TurboVector<process_t*> proc_table;
+    process_t *initproc = nullptr;
+
+    size_t proc_count = 0;
+    size_t thread_count = 0;
+
+    DEFINE_LOCK(thread_lock);
+    DEFINE_LOCK(sched_lock);
+    DEFINE_LOCK(proc_lock);
+
+    thread_t *thread_alloc(uint64_t addr, uint64_t args){
+        thread_lock.lock();
+        thread_t *thread = new thread_t;
+
+        thread->state = INITIAL_STATE;
+        thread->stack = static_cast<uint8_t*>(malloc(STACK_SIZE));
+
+        thread->regs.rflags = 0x202;
+        thread->regs.cs = 0x28;
+        thread->regs.ss = 0x30;
+
+        thread->regs.rip = addr;
+        thread->regs.rdi = reinterpret_cast<uint64_t>(args);
+        thread->regs.rsp = reinterpret_cast<uint64_t>(thread->stack) + STACK_SIZE;
+
+        thread->parent = nullptr;
+        thread_lock.unlock();
+
+        return thread;
+    }
+
+    thread_t *thread_create(uint64_t addr, uint64_t args, process_t *parent){
+        thread_t *thread = thread_alloc(addr, args);
+
+        if(parent){
+            thread->tid = parent->next_tid++;
+            thread->parent = parent;
+            parent->threads.push_back(thread);
+        }
+
+        thread_count++;
+        thread_lock.lock();
+        thread->state = READY;
+        thread_lock.unlock();
+
+        return thread;
+    }
+
+    void idle(){
+        while(true){
+            asm volatile ("hlt");
+        }
+    }
+
+    process_t *proc_alloc(const char *name, uint64_t addr, uint64_t args){
+        process_t *proc = new process_t;
+
+        proc_lock.lock();
+        strncpy(proc->name, name, (strlen(name) < 128) ? strlen(name) : 128);
+        proc->pid = next_pid++;
+        proc->state = INITIAL_STATE;
+        proc->pagemap = vMemory::newPagemap();
+        proc->parent = nullptr;
+
+        if(addr){
+            thread_create(addr, args, proc);
+        }
+
+        if(!isInit){
+            initproc = proc;
+            isInit = true;
+        }
+
+        proc_lock.unlock();
+
+        return proc;
+    }
+
+    process_t *proc_create(const char *name, uint64_t addr, uint64_t args){
+        process_t *proc = proc_alloc(name, addr, args);
+        proc_table.push_back(proc);
+        proc_count++;
+        proc_lock.lock();
+        proc->state = READY;
+        proc_lock.unlock();
+
+        return proc;
+    }
+
+    thread_t *this_thread(){
+        asm volatile ("cli");
+        thread_t *thread = thisCPU->currentThread;
+        asm volatile ("sti");
+        return thread;
+    }
+
+    process_t *this_proc(){
+        asm volatile ("cli");
+        process_t *proc = thisCPU->currentProcess;
+        asm volatile ("sti");
+        return proc;
+    }
+
+    void _yield(uint64_t ms){
+        if(apic::isInit){
+            apic::lapicOneShot(sched_vector, ms);
+        }
+        else{
+            pit::setFrequence(MS_TO_PIT(ms));
+        }
+    }
+
+    void thread_block(){
+        asm volatile ("cli");
+        if(this_thread()->state == READY || this_thread()->state == RUNNING){
+            this_thread()->state = BLOCKED;
+            serial::log("Blocking thread with TID: %d and PID: %d", this_thread()->tid, this_proc()->pid);
+        }
+
+        asm volatile ("sti");
+        _yield();
+    }
+
+    void thread_block(thread_t *thread){
+        asm volatile ("cli");
+
+        if(this_thread()->state == READY || this_thread()->state == RUNNING){
+            thread->state = BLOCKED;
+            serial::log("Blocking thread with TID: %d and PID: %d", thread->tid, thread->parent->pid);
+        }
+
+        asm volatile ("sti");
+    }
+
+    void proc_block(){
+        asm volatile ("cli");
+        if(this_proc() == initproc){
+            serial::log("Can not block init process!");
+            asm volatile ("sti");
+            return;
+        }
+
+        if(this_proc()->state == READY || this_proc()->state == RUNNING){
+            this_proc()->state = BLOCKED;
+            serial::log("Blocking process with PID: %d", this_proc()->pid);
+        }
+        asm volatile ("sti");
+        _yield();
+    }
+
+    void proc_block(process_t *proc){
+        asm volatile ("cli");
+
+        if(this_proc()->state == READY || this_proc()->state == RUNNING){
+            proc->state = BLOCKED;
+            serial::log("Blocking process with PID: %d", proc->pid);
+        }
+
+        asm volatile ("sti");
+    }
+
+    void thread_unblock(thread_t *thread){
+        asm volatile ("cli");
+
+        if(thread->state == BLOCKED){
+            thread->state = READY;
+            serial::log("Unblocking thread with TID: %d and PID: %d", thread->tid, thread->parent->pid);
+        }
+
+        asm volatile ("sti");
+    }
+
+    void proc_unblock(process_t *proc){
+        asm volatile ("cli");
+
+        if(proc->state == BLOCKED){
+            proc->state = READY;
+            serial::log("Unblocking process with PID: %d", proc->pid);
+        }
+
+        asm volatile ("sti");
+    }
+
+    void thread_exit(){
+        asm volatile ("cli");
+        if(this_proc() == initproc && this_proc()->threads.size() == 1 && this_proc()->children.size() == 0){
+            serial::log("Can not kill init process!");
+            return;
+        }
+        this_thread()->state = KILLED;
+        serial::log("Exiting thread with TID: %d and PID: %d", this_thread()->tid, this_proc()->pid);
+        asm volatile ("sti");
+        _yield();
+
+        while(true){
+            asm volatile ("hlt");
+        }
+    }
+
+    void proc_exit(){
+        asm volatile ("cli");
+        if(this_proc() == initproc){
+            serial::log("Can not kill init process!");
+            return;
+        }
+
+        this_proc()->state = KILLED;
+        serial::log("Exiting process with PID: %d", this_proc()->pid);
+        asm volatile ("sti");
+        _yield();
+
+        while(true){
+            asm volatile ("hlt");
+        }
+    }
+
+    void clean_proc(process_t *proc){
+        if (proc == nullptr){
+            return;
+        }
+
+        if (proc->state == KILLED){
+
+            for (size_t i = 0; i < proc->children.size(); i++){
+                process_t *childproc = proc->children[i];
+                childproc->state = KILLED;
+                clean_proc(childproc);
+            }
+
+            for (size_t i = 0; i < proc->threads.size(); i++){
+                thread_t *thread = proc->threads[i];
+                proc->threads.remove(proc->threads.find(thread));
+                free(thread->stack);
+                free(thread);
+                thread_count--;
+            }
+
+            process_t *parentproc = proc->parent;
+
+            if(parentproc != nullptr){
+                parentproc->children.remove(parentproc->children.find(proc));
+                
+                if (parentproc->children.size() == 0 && proc->threads.size() == 0){
+                    parentproc->state = KILLED;
+                    clean_proc(parentproc);
+                }
+            }
+
+            free(proc->pagemap);
+            free(proc);
+            proc_count--;
+        }
+        else{
+            for(size_t i = 0; i < proc->threads.size(); i++){
+                thread_t *thread = proc->threads[i];
+                if(thread->state == KILLED){
+                    proc->threads.remove(proc->threads.find(thread));
+                    free(thread->stack);
+                    free(thread);
+                    thread_count--;
+                }
+            }
+
+            if(proc->children.size() == 0 && proc->threads.size() == 0){
+                proc->state = KILLED;
+                clean_proc(proc);
+            }
+        }
+    }
+
+    void switchTask(registers_t *regs){
+        if(!isInit){
+            return;
+        }
+
+        sched_lock.lock();
+        uint64_t timeslice = DEFAULT_TIMESLICE;
+
+        if (!this_proc() || !this_thread()){
+            for(size_t i = 0; i < proc_table.size(); i++){
+                process_t *proc = proc_table[i];
+                if(proc->state != READY){
+                    clean_proc(proc);
+                    continue;
+                }
+
+                for(size_t t = 0; t < proc->threads.size(); t++){
+                    thread_t *thread = proc->threads[t];
+                    if(thread->state != READY){
+                        continue;
+                    }
+
+                    thisCPU->currentProcess = proc;
+                    thisCPU->currentThread = thread;
+                    timeslice = this_thread()->sliceOfTime;
+                    goto success;
+                }
+            }
+            goto nofree;
+        }
+        else{
+            this_thread()->regs = *regs;
+
+            if(this_thread()->state == RUNNING){
+                this_thread()->state = READY;
+            }
+
+            for (size_t t = this_proc()->threads.find(this_thread()) + 1; t < this_proc()->threads.size(); t++){
+                thread_t *thread = this_proc()->threads[t];
+
+                if(this_proc()->state != READY){
+                    break;
+                }
+
+                if(thread->state != READY){
+                    continue;
+                }
+
+                thisCPU->currentProcess = this_proc();
+                thisCPU->currentThread = thread;
+                timeslice = this_thread()->sliceOfTime;
+                goto success;
+            }
+            for (size_t p = proc_table.find(this_proc()) + 1; p < proc_table.size(); p++){
+                process_t *proc = proc_table[p];
+                if(proc->state != READY){
+                    continue;
+                }
+
+                for (size_t t = 0; t < proc->threads.size(); t++){
+                    thread_t *thread = proc->threads[t];
+                    if(thread->state != READY){
+                        continue;
+                    }
+
+                    clean_proc(this_proc());
+
+                    thisCPU->currentProcess = proc;
+                    thisCPU->currentThread = thread;
+                    timeslice = this_thread()->sliceOfTime;
+                    goto success;
+                }
+            }
+            for (size_t p = 0; p < proc_table.find(this_proc()) + 1; p++){
+                process_t *proc = proc_table[p];
+                if(proc->state != READY){
+                    continue;
+                }
+
+                for(size_t t = 0; t < proc->threads.size(); t++){
+                    thread_t *thread = proc->threads[t];
+                    if(thread->state != READY){
+                        continue;
+                    }
+
+                    clean_proc(this_proc());
+
+                    thisCPU->currentProcess = proc;
+                    thisCPU->currentThread = thread;
+                    timeslice = this_thread()->sliceOfTime;
+                    goto success;
+                }
+            }
+        }
+        goto nofree;
+
+        success:;
+        this_thread()->state = RUNNING;
+        *regs = this_thread()->regs;
+        vMemory::switchPagemap(this_proc()->pagemap);
+
+        serial::log("Running process[%d]->thread[%d] on CPU core %zu", this_proc()->pid - 1, this_thread()->tid - 1, thisCPU->lapicID);
+
+        sched_lock.unlock();
+        _yield(timeslice);
+        return;
+
+        nofree:
+        clean_proc(this_proc());
+
+        if (thisCPU->idleP == nullptr){
+            thisCPU->idleP = proc_alloc("Idle", reinterpret_cast<uint64_t>(idle), 0);
+            thread_count--;
+        }
+
+        thisCPU->currentProcess = thisCPU->idleP;
+        thisCPU->currentThread = thisCPU->idleP->threads[0];
+        timeslice = this_thread()->sliceOfTime;
+
+        this_thread()->state = RUNNING;
+        *regs = this_thread()->regs;
+        vMemory::switchPagemap(this_proc()->pagemap);
+
+        serial::log("Running Idle process on CPU core %zu", thisCPU->lapicID);
+
+        sched_lock.unlock();
+        _yield();
+    }
+
+    void init(){
+        if (apic::isInit){
+            if (sched_vector == 0){
+                sched_vector = idt::allocVector();
+                idt::registerInterruptHandler(sched_vector, switchTask);
+                idt::idtSetDescriptor(sched_vector, idt::int_table[sched_vector], 0x8E, 1);
+            }
+            apic::lapicPeriodic(sched_vector);
+        }
+        else{
+            idt::idtSetDescriptor(sched_vector, idt::int_table[idt::IRQ0], 0x8E, 1);
+            pit::isScheduling = true;
+        }
+    }
 }
