@@ -157,6 +157,35 @@ namespace turbo::vfs{
         return node;
     }
 
+    tfs_node_t *addDir(tfs_node_t* parent, const char *name){
+        if(!parent){
+            parent = tfs_root;
+        }
+        tfs_node_t *node = static_cast<tfs_node_t*>(turbo::heap::calloc(1,sizeof(tfs_node_t)));
+        strcpy(node->name,name);
+        node->parent = parent;
+        node->fs = parent->fs;
+        node->flags = turbo::vfs::TFS_FOLDER;
+        strcpy(node->path,node->parent->path);
+        strcat(node->path,"/");
+        strcat(node->path,node->name);
+        parent->childs.push_back(node);
+        return node;
+    }
+
+    tfs_node_t *addFile(tfs_node_t* parent, const char *name){
+        if(!parent){
+            parent = tfs_root;
+        }
+        tfs_node_t *node = static_cast<tfs_node_t*>(turbo::heap::calloc(1,sizeof(tfs_node_t)));
+        strcpy(node->name,name);
+        node->parent = parent;
+        node->fs = parent->fs;
+        node->flags = turbo::vfs::TFS_FILE;
+        parent->childs.push_back(node);
+        return node;
+    }
+
     void removeChild(tfs_node_t * parent, const char *name){
         if(!parent){
             parent = tfs_root;
