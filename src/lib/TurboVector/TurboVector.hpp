@@ -28,7 +28,7 @@ public:
 	}
 
 	void destroy(){
-		turbo::heap::free(data);
+		free(data);
 		isInit = false;
 	}
 
@@ -42,7 +42,7 @@ public:
 			++length;
 		}
 		else {
-			data = ((T*) turbo::heap::realloc(data, 2 * capacity * sizeof(T)));
+			data = ((T*)realloc(data, 2 * capacity * sizeof(T)));
 			capacity *= 2;
 			if(data){
 				*(data + length) = item;
@@ -87,7 +87,7 @@ public:
 	}
 
 	size_t size(){
-		return this->length();
+		return this->length;
 	}
 
 	size_t getCapacity(){
@@ -100,7 +100,7 @@ public:
 		}
 
 		capacity = size;
-		data = ((T*) turbo::heap::realloc(data, size * sizeof(T)));
+		data = ((T*)realloc(data, size * sizeof(T)));
 		
 		if(length > size){
 			length = size + 1;
@@ -121,7 +121,7 @@ public:
 			++length;
 		}
 		else{
-			data = ((T*)turbo::heap::realloc(data, (capacity + 1) * sizeof(T)));
+			data = ((T*)realloc(data, (capacity + 1) * sizeof(T)));
 			capacity *= 2;
 
 			if(data){

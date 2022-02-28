@@ -44,11 +44,12 @@ namespace turbo::pit{
 			frequence = 19;
 		}
 		frequence = f;
+		uint64_t div = 1193180/frequence;
 
 		outb(0x43, 0x36);
 
-		outb(0x40, (uint8_t)(1193180/frequence));
-		outb(0x40, (uint8_t)((1193180/frequence)>>8));
+		outb(0x40, (uint8_t)div);
+		outb(0x40, (uint8_t)(div >> 8));
 		pit_lock.unlock();
 	}
 

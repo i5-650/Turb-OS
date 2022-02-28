@@ -9,116 +9,79 @@
 
 using namespace turbo;
 
-#define DEFAULT_TIMESLICE 5
-
 namespace turbo::scheduler {
+	#define DEFAULT_TIMESLICE 5
 
-	enum state_t {
+	enum state_t{
 		INITIAL_STATE,
-		RUNNING,
 		READY,
+		RUNNING,
 		BLOCKED,
+		SLEEPING,
 		KILLED
 	};
 
 	struct process_t;
-	// https://docs.microsoft.com/en-us/windows/win32/procthread/processes-and-threads
-	struct thread_t {
-		int TID;
+
+	struct thread_t{
+		int tid = 1;
 		state_t state;
-		uint8_t* threadStack;
-		registers_t threadRegisters;
-		process_t* parent;
+		uint8_t *stack;
+		registers_t regs;
+		process_t *parent;
 		size_t sliceOfTime = DEFAULT_TIMESLICE;
 	};
 
-	struct process_t {
+	struct process_t{
 		char name[128];
-		int PID = 0;
-		int nextTID;
+		int pid = 0;
+		int next_tid = 1;
 		state_t state;
+		vMemory::Pagemap *pagemap;
 		TurboVector<thread_t*> threads;
 		TurboVector<process_t*> children;
-		process_t* parent;
-		vMemory::Pagemap* processPagemap;
+		process_t *parent;
 	};
 
-	extern bool isInit;
-	extern process_t* initProc;
+	extern process_t *initproc;
 
-	extern size_t processesCounter;
-	extern size_t threadsCounter;
+	extern TurboVector<process_t*> proc_table;
 
-	extern uint64_t timeSlice;
+	extern size_t proc_count;
+	extern size_t thread_count;
 
-	// threads
-	thread_t* allocThread(uint64_t address, uint64_t args);
-	thread_t* createThread(uint64_t adress, uint64_t args, process_t* parent = nullptr);
+	thread_t *thread_alloc(uint64_t addr, uint64_t args);
+	thread_t *thread_create(uint64_t addr, uint64_t args, process_t *parent = nullptr);
 
-	thread_t* getThisThread();
+	process_t *proc_alloc(const char *name, uint64_t addr, uint64_t args);
+	process_t *proc_create(const char *name, uint64_t addr, uint64_t args);
 
-	void blockThread();
-	void blockThread(thread_t* thread);
+	thread_t *this_thread();
+	process_t *this_proc();
 
-	void unblockThread(thread_t* thread);
+	void thread_block();
+	void thread_block(thread_t *thread);
 
-	void exitThread();
+	void proc_block();
+	void proc_block(process_t *proc);
 
+	void thread_unblock(thread_t *thread);
+	void proc_unblock(process_t *proc);
 
-	// processes
-	process_t* allocProcess(const char* name, uint64_t address, uint64_t args);
-	process_t* createProcess(const char* name, uint64_t address, uint64_t args);
+	void thread_exit();
+	void proc_exit();
 
-	process_t* getThisProcess();
+	static inline int getpid(){
+		return this_proc()->pid;
+	}
 
-	void blockProcess();
-	void blockProcess(process_t* process);
+	static inline int gettid(){
+		return this_thread()->tid;
+	}
 
-	void unblockProcess(process_t* process);
+	void _yield(uint64_t ms = 1);
+	void switchTask(registers_t *regs);
 
-	void exitProcess();
-
-
-	// global
-	void switchTask(registers_t* reg);
 	void init();
-	void _yield(uint64_t mSeconds = 1);
-
-
-	// basics gets
-	static inline int getPID(){
-		return getThisProcess()->PID;
-	}
-
-	static inline int getTID(){
-		return getThisThread()->TID;
-	}
-
-	#define subSuccess(reg) \
-	({ \
-		getThisThread()->state = RUNNING; \
-		*reg = getThisThread()->threadRegisters; \
-		vMemory::switchPagemap(getThisProcess()->processPagemap); \
-		serial::log("[RUNNING] p[%d]->thread[%d]: CPU%zu\n", getThisProcess()->PID - 1, getThisThread()->TID - 1, thisCPU->lapicID); \
-		schedLock.unlock(); \
-		_yield(timeSlice); \
-	})
-
-	#define subNoFree(p, t, reg) \
-	({\
-		cleanProcess(getThisProcess()); \
-		if(thisCPU->idleP == nullptr){\
-			thisCPU->idleP = allocProcess("IDLE", (uint64_t)_idle, 0); \
-			threadsCounter--; \
-		} \
-		thisCPU->currentProcess = thisCPU->idleP; \
-		thisCPU->currentThread = thisCPU->idleP->threads[0]; \
-		timeSlice = getThisThread()->sliceOfTime; \
-		getThisThread()->state = RUNNING; \
-		*reg = getThisThread()->threadRegisters; \
-		vMemory::switchPagemap(getThisProcess()->processPagemap); \
-		serial::log("IDLE on CPU %zu", thisCPU->lapicID);\
-		schedulerLock.unlock(); \
-		_yield(); \
-	})
+	extern bool isInit;
 }

@@ -11,6 +11,7 @@
 #include <lib/lock.hpp>
 #include <lib/portIO.hpp>
 #include <lib/cpu/cpu.hpp>
+#include <kernel/kernel.hpp>
 
 namespace turbo::serial {
 

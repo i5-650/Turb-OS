@@ -19,6 +19,6 @@ namespace turbo::pit {
 
 	void setFrequence(uint64_t freq = PIT_DEFAULT_FREQUENCE);
 
-	void init(uint64_t frequence = PIT_DEFAULT_FREQUENCE);
+	void init(uint64_t freq = PIT_DEFAULT_FREQUENCE);
 }
 

@@ -3,7 +3,6 @@
 #include <lib/string.hpp>
 #include <lib/memory/memory.hpp>
 
-using namespace turbo::heap;
 
 namespace turbo::pci {
 

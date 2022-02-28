@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <kernel/kernel.hpp>
 
 namespace turbo::keyboard {
 	

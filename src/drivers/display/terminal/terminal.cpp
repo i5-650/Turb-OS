@@ -5,6 +5,7 @@
 #include <lib/string.hpp>
 #include <lib/lock.hpp>
 #include <stivale2.h>
+#include <kernel/kernel.hpp>
 
 namespace turbo::terminal {
 

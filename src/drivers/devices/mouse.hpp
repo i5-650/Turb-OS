@@ -2,6 +2,7 @@
 
 #include <lib/math.hpp>
 #include <stdint.h>
+#include <kernel/kernel.hpp>
 
 namespace turbo::mouse {
 

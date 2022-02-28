@@ -29,29 +29,6 @@
 
 namespace turbo {
 
-	struct stivale2_struct_tag_smp *smp_tag;
-	struct stivale2_struct_tag_memmap *mmap_tag;
-	struct stivale2_struct_tag_rsdp *rsdp_tag;
-	struct stivale2_struct_tag_framebuffer *frm_tag;
-	struct stivale2_struct_tag_terminal *term_tag;
-	struct stivale2_struct_tag_modules *mod_tag;
-	struct stivale2_struct_tag_cmdline *cmd_tag;
-	struct stivale2_struct_tag_kernel_file_v2 *kfilev2_tag;
-	struct stivale2_struct_tag_hhdm *hhdm_tag;
-	struct stivale2_struct_tag_pmrs *pmrs_tag;
-	struct stivale2_struct_tag_kernel_base_address *kbaddr_tag;
-
-	char *cmdline;
-
-	int find_module(const char *name){
-		for (uint64_t i = 0; i < mod_tag->module_count; i++){
-			if (!strcmp(mod_tag->modules[i].string, name)){
-				return i;
-			}
-		}
-		return -1;
-	}
-
 	void myTime(){
 		while(true){
 			size_t size = 0;
@@ -65,25 +42,7 @@ namespace turbo {
 		}
 	}
 
-	void main(struct stivale2_struct *stivale2_struct){
-		smp_tag = (stivale2_struct_tag_smp (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_SMP_ID);
-		mmap_tag = (stivale2_struct_tag_memmap (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_MEMMAP_ID);
-		rsdp_tag = (stivale2_struct_tag_rsdp (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_RSDP_ID);
-		frm_tag = (stivale2_struct_tag_framebuffer (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_FRAMEBUFFER_ID);
-		term_tag = (stivale2_struct_tag_terminal (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_TERMINAL_ID);
-		mod_tag = (stivale2_struct_tag_modules (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_MODULES_ID);
-		cmd_tag = (stivale2_struct_tag_cmdline (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_CMDLINE_ID);
-		kfilev2_tag = (stivale2_struct_tag_kernel_file_v2 (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_KERNEL_FILE_V2_ID);
-		hhdm_tag = (stivale2_struct_tag_hhdm (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_HHDM_ID);
-		pmrs_tag = (stivale2_struct_tag_pmrs (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_PMRS_ID);
-		kbaddr_tag = (stivale2_struct_tag_kernel_base_address (*))stivale2_get_tag(stivale2_struct, STIVALE2_STRUCT_TAG_KERNEL_BASE_ADDRESS_ID);
-		
-
-		cmdline = (char *)cmd_tag->cmdline;
-
-		if(!strstr(cmdline, "nocom")){
-			turbo::serial::init();
-		}
+	void main(){
 
 		turbo::serial::log("Turb OS");
 
@@ -96,21 +55,6 @@ namespace turbo {
 		for(uint64_t t = 0; t < mod_tag->module_count; t++){
 			turbo::serial::log("%d) %s", t + 1, mod_tag->modules[t].string);
 		}
-
-		turbo::serial::newline();
-
-		if(frm_tag == NULL){
-			PANIC("Could not find framebuffer tag!");
-		}
-
-		turbo::framebuffer::init();
-		ssfn::init();
-
-		if(term_tag == NULL){
-			PANIC("Could not find terminal tag!");
-		}
-
-		turbo::terminal::init();
 
 		turbo::terminal::center("Welcome Turb OS");
 
@@ -126,8 +70,7 @@ namespace turbo {
 		turbo::terminal::okerr(vMemory::isInit);
 
 		turbo::terminal::check("Initialising Heap...");
-		turbo::heap::init();
-		turbo::terminal::okerr(heap::isInit);
+		turbo::terminal::okerr(true);
 
 		turbo::terminal::check("Initialising Global Descriptor Table...");
 		turbo::gdt::init();
@@ -174,18 +117,17 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		rtc::init();
-		printf("good\n");
-
 		//turbo::shell::run();
-		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
-		scheduler::createThread((uint64_t)myTime, 0, scheduler::initProc);
+		scheduler::proc_create("Init", (uint64_t)turbo::shell::run, 0);
+		turbo::serial::log("Starting shell");
+		scheduler::thread_create((uint64_t)myTime, 0, scheduler::initproc);
 
 		printf("good2\n");
 		//turbo::shell::run();
 
 		scheduler::init();
 		printf("good3\n");
+		ssfn::printfAt(0, 0, rtc::getTime());
 
 	}
 }

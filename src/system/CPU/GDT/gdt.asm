@@ -1,4 +1,3 @@
-[bits 64]
 loadGDT:
     lgdt [rdi]
     mov ax, 0x30

@@ -2,7 +2,7 @@
 #include <drivers/display/serial/serial.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <system/PCI/pci.hpp>
-#include <kernel/main.hpp>
+#include <kernel/kernel.hpp>
 #include <lib/memory/memory.hpp>
 #include <lib/string.hpp>
 #include <lib/memory/mmio.hpp>
