@@ -6,8 +6,7 @@
 
 #define INIT_PAGES 512
 
-struct HeapBlock
-{
+struct HeapBlock{
     size_t size;
     bool free;
 };

@@ -24,21 +24,21 @@ namespace turbo::scheduler {
 	struct process_t;
 
 	struct thread_t{
-		int tid = 1;
+		int TID = 1;
 		state_t state;
-		uint8_t *stack;
-		registers_t regs;
-		process_t *parent;
+		uint8_t *thread_stack;
+		registers_t thread_regs;
+		process_t *parent_proc;
 		size_t sliceOfTime = DEFAULT_TIMESLICE;
 	};
 
 	struct process_t{
 		char name[128];
-		int pid = 0;
-		int next_tid = 1;
+		int PID = 0;
+		int nextTID = 1;
 		state_t state;
 		vMemory::Pagemap *pagemap;
-		TurboVector<thread_t*> threads;
+		TurboVector<thread_t*> threadsVec;
 		TurboVector<process_t*> children;
 		process_t *parent;
 	};
@@ -50,33 +50,33 @@ namespace turbo::scheduler {
 	extern size_t proc_count;
 	extern size_t thread_count;
 
-	thread_t *thread_alloc(uint64_t addr, uint64_t args);
-	thread_t *thread_create(uint64_t addr, uint64_t args, process_t *parent = nullptr);
+	thread_t *allocThread(uint64_t addr, uint64_t args);
+	thread_t *createThread(uint64_t addr, uint64_t args, process_t *parent = nullptr);
 
-	process_t *proc_alloc(const char *name, uint64_t addr, uint64_t args);
-	process_t *proc_create(const char *name, uint64_t addr, uint64_t args);
+	process_t *allocProc(const char *name, uint64_t addr, uint64_t args);
+	process_t *createProc(const char *name, uint64_t addr, uint64_t args);
 
 	thread_t *this_thread();
 	process_t *this_proc();
 
-	void thread_block();
-	void thread_block(thread_t *thread);
+	void blockThread();
+	void blockThread(thread_t *thread);
 
-	void proc_block();
-	void proc_block(process_t *proc);
+	void blockProc();
+	void blockProc(process_t *proc);
 
-	void thread_unblock(thread_t *thread);
-	void proc_unblock(process_t *proc);
+	void unblockThread(thread_t *thread);
+	void unblockProc(process_t *proc);
 
-	void thread_exit();
-	void proc_exit();
+	void exitThread();
+	void exitProc();
 
-	static inline int getpid(){
-		return this_proc()->pid;
+	static inline int getPID(){
+		return this_proc()->PID;
 	}
 
-	static inline int gettid(){
-		return this_thread()->tid;
+	static inline int getTID(){
+		return this_thread()->TID;
 	}
 
 	void _yield(uint64_t ms = 1);
