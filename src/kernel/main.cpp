@@ -156,9 +156,9 @@ namespace turbo {
 		rtc::init();
 		printf("good\n");
 
-		//turbo::shell::run();
-		scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
-		scheduler::createThread((uint64_t)turbo::rtc::time, 0, scheduler::initProc);
+		turbo::shell::run();
+		//scheduler::createProcess("INIT", (uint64_t)turbo::shell::run, 0);
+		//scheduler::createThread((uint64_t)turbo::rtc::time, 0, scheduler::initProc);
 
 		printf("good2\n");
 		//turbo::shell::run();

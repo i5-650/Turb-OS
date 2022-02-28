@@ -165,7 +165,6 @@ namespace turbo::scheduler {
         p->PID = nextPID++;
         p->state = INITIAL_STATE;
         p->processPagemap = vMemory::newPagemap();
-        p->current_dir = turbo::vfs::open(NULL,"/");
         p->parent = nullptr;
 
         if(address){

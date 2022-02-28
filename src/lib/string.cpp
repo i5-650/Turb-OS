@@ -45,11 +45,9 @@ char *strncpy(char *destination, const char *source, size_t n){
 }
 
 char *strcat(char *destination, const char *source){
+    if (destination == nullptr) {return nullptr; }
     char *ptr = destination + strlen(destination);
-    while(*source != '\0'){
-        *ptr++ = *source++;
-    }
-    *ptr = '\0';
+    while (*source != '\0') {*ptr++ = *source++;}
     return destination;
 }
 
