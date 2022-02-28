@@ -14,7 +14,7 @@
 namespace turbo::keyboard {
 	bool isInit = false;
 
-	char retstr[1024] = "\0";
+	char* retstr = nullptr;
 	bool reading = false;
 	int gi = 0;
 
@@ -197,6 +197,11 @@ namespace turbo::keyboard {
 			if(pressed){
 				if(gi >= 1024 - 1){
 					printf("\nBuffer Overflow !");
+					enter = false;
+					reading = false;
+					gi = 0;
+					readLock.unlock();
+					return nullptr;
 				}
 
 				retstr[gi] = getChar();
@@ -219,6 +224,7 @@ namespace turbo::keyboard {
 			return;
 		}
 		buff = (char*)calloc(1024, sizeof(char));
+		retstr = new char[1024];
 		registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
 
 		serial::newline();
