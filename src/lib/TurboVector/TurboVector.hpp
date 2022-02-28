@@ -90,6 +90,10 @@ public:
 		return this->length();
 	}
 
+	T &at(size_t position){
+		return *(this->data + position);
+	}
+
 	size_t getCapacity(){
 		return this->capacity;
 	}

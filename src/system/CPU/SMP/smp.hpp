@@ -9,6 +9,8 @@ using namespace turbo;
 
 namespace turbo::smp {
 
+	extern bool isInit;
+
 	#define thisCPU \
 	({ \
 		uint64_t cpuNumber; \

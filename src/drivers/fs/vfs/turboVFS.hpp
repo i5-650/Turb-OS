@@ -7,6 +7,7 @@ namespace turbo::vfs{
     
     #define FILENAME_LENGTH 128
     #define ROOTNAME "[ROOT]"
+    #define PATH_LENGTH 128
 
     enum filetypes{
         TFS_FILE = 0x01, //Flags to define it's a file
@@ -36,15 +37,12 @@ namespace turbo::vfs{
     struct tfs_node_t{
         char name[FILENAME_LENGTH];
         uint64_t mode; //Reference to the mode of the node
-        uint64_t uid; //Reference the user id of the node
-        uint64_t gid; //Reference the group id of the process that open thhe file
         uint64_t flags; //Reference for all the flags of the node
-        uint64_t inode; //Reference the number of the inoded
-        uint64_t adress; //Reference the adress of the node
         tfs_node_t *ptr; //Self Pointer
         tfs_t *fs; //Pointer on the file-system
         tfs_node_t *parent; //Pointer on the parent node
         TurboVector<tfs_node_t*> childs; //Vector of all the listed child
+        char path[PATH_LENGTH];
     };
     
     extern bool isInit;
@@ -58,6 +56,8 @@ namespace turbo::vfs{
 
     tfs_node_t *getChild(tfs_node_t *parent,const char *path);
     tfs_node_t *addChild(tfs_node_t *parent,const char *name);
+    tfs_node_t *addDir(tfs_node_t *parent,const char *name);
+    tfs_node_t *addFile(tfs_node_t *parent,const char *name);
     void removeChild(tfs_node_t *parent,const char *name);
 
     tfs_node_t *open(tfs_node_t *parent,const char *path);

@@ -41,7 +41,6 @@ namespace turbo::scheduler {
         TurboVector<process_t*> children;
         process_t* parent;
         vMemory::Pagemap* processPagemap;
-        turbo::vfs::tfs_node_t *current_dir;
     };
 
     extern bool isInit;
