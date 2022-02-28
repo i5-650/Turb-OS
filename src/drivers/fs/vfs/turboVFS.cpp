@@ -149,7 +149,7 @@ namespace turbo::vfs{
         if(!parent){
             parent = tfs_root;
         }
-        tfs_node_t *node = static_cast<tfs_node_t*>(calloc(1,sizeof(tfs_node_t)));
+        tfs_node_t *node = static_cast<tfs_node_t*>(malloc(sizeof(tfs_node_t)));
         strcpy(node->name,name);
         node->parent = parent;
         node->fs = parent->fs;
@@ -161,7 +161,7 @@ namespace turbo::vfs{
         if(!parent){
             parent = tfs_root;
         }
-        tfs_node_t *node = static_cast<tfs_node_t*>(turbo::heap::calloc(1,sizeof(tfs_node_t)));
+        tfs_node_t *node = static_cast<tfs_node_t*>(malloc(sizeof(tfs_node_t)));
         strcpy(node->name,name);
         node->parent = parent;
         node->fs = parent->fs;
@@ -177,7 +177,7 @@ namespace turbo::vfs{
         if(!parent){
             parent = tfs_root;
         }
-        tfs_node_t *node = static_cast<tfs_node_t*>(turbo::heap::calloc(1,sizeof(tfs_node_t)));
+        tfs_node_t *node = static_cast<tfs_node_t*>(malloc(sizeof(tfs_node_t)));
         strcpy(node->name,name);
         node->parent = parent;
         node->fs = parent->fs;
