@@ -14,7 +14,7 @@
 namespace turbo::keyboard {
 	bool isInit = false;
 
-	char* retstr = nullptr;
+	char retstr[1024] = "\0";
 	bool reading = false;
 	int gi = 0;
 
@@ -43,12 +43,11 @@ namespace turbo::keyboard {
 		return 0;
 	}
 
-	void handleComb(uint8_t scancode){
+	static void handleComb(uint8_t scancode){
 		char ch = getASCIIchar(scancode);
 
 		if(kbd_mod.ctrl && kbd_mod.alt && scancode == keys::DELETE){
 			acpi::reboot();
-			terminal::print("Supposed to reboot");
 		}
 		else if(kbd_mod.ctrl && ((ch == 'l') || (ch == 'L'))){
 			terminal::clear();
@@ -63,7 +62,7 @@ namespace turbo::keyboard {
 	char c[10] = "\0";
 
 	void clearBuffer(){
-		for(size_t i = 0; i < strlen(buff); ++i){
+		for(size_t i = 0; i < strlen(buff); i++){
 			buff[i] = '\0';
 		}
 	}
@@ -76,15 +75,13 @@ namespace turbo::keyboard {
 				// same case
 				case keys::L_SHIFT_UP:
 				case keys::R_SHIFT_UP:
-					kbd_mod.shift = 0;
+					kbd_mod.shift = false;
 					break;
-
 				case keys::CTRL_UP:
-					kbd_mod.ctrl = 0;
+					kbd_mod.ctrl = false;
 					break;
-
 				case keys::ALT_UP:
-					kbd_mod.alt = 0;
+					kbd_mod.alt = false;
 					break;
 			}
 		}
@@ -93,63 +90,43 @@ namespace turbo::keyboard {
 				// same case
 				case keys::L_SHIFT_DOWN:
 				case keys::R_SHIFT_DOWN:
-					kbd_mod.shift = 1;
+					kbd_mod.shift = true;
 					break;
-
 				case keys::CTRL_DOWN:
-					kbd_mod.ctrl = 1;
+					kbd_mod.ctrl = true;
 					break;
-
 				case keys::ALT_DOWN:
-					kbd_mod.alt = 1;
+					kbd_mod.alt = true;
 					break;
-
 				case keys::CAPSLOCK:
-					kbd_mod.capslock = (!kbd_mod.capslock) ? 1 : 0;
+					kbd_mod.capslock = (!kbd_mod.capslock) ? true : false;
 					break;
-
 				case keys::NUMLOCK:
-					kbd_mod.numlock = (!kbd_mod.numlock) ? 1 : 0;
+					kbd_mod.numlock = (!kbd_mod.numlock) ? true : false;
 					break;
-
 				case keys::SCROLLLOCK:
-					kbd_mod.scrolllock = (!kbd_mod.scrolllock) ? 1 : 0;
+					kbd_mod.scrolllock = (!kbd_mod.scrolllock) ? true : false;
 					break;
-
 				case keys::RIGHT:
 					strcpy(c, "\033[C");
 					terminal::cursor_right();
 					break;
-
 				case keys::LEFT:
 					strcpy(c, "\033[D");
 					terminal::cursor_left();
 					break;
-
 				case keys::UP:
-					strcpy(c, "\033[C");
+					strcpy(c, "\033[A");
 					terminal::cursor_up();
 					break;
-
 				case keys::DOWN:
-					strcpy(c, "\033[D");
+					strcpy(c, "\033[B");
 					terminal::cursor_down();
 					break;
-
 				default:
 					memset(c, 0, strlen(c));
 					c[0] = getASCIIchar(scancode);
 					if(kbd_mod.alt || kbd_mod.ctrl){
-						char ch = char2up(c[0]);
-
-						if(kbd_mod.ctrl){
-							if(ch >= 'A' && ch <= '_' || ch == '?' || ch == '0'){
-								printf("%c", escapes[char2num(ch)]);
-							}
-						}
-						else if(kbd_mod.alt){
-							printf("\x1b[%c", ch);
-						}
 						handleComb(scancode);
 					}
 					else{
@@ -159,7 +136,6 @@ namespace turbo::keyboard {
 								clearBuffer();
 								enter = true;
 								break;
-
 							case '\b':
 								if(buff[0] != '\0'){
 									buff[strlen(buff) - 1] = '\0';
@@ -169,7 +145,6 @@ namespace turbo::keyboard {
 									printf("\b \b");
 								}
 								break;
-
 							default:
 								pressed = true;
 								printf("%s", c);
@@ -193,8 +168,14 @@ namespace turbo::keyboard {
 		readLock.lock();
 		reading = true;
 		memset(retstr, '\0', 1024);
+		serial::log("enter %d", enter);
+		serial::log("pressed %d", pressed);
 		while(!enter){
 			if(pressed){
+
+				serial::log("if enter %d", enter);
+				serial::log("if pressed %d", pressed);
+				
 				if(gi >= 1024 - 1){
 					printf("\nBuffer Overflow !");
 					enter = false;
@@ -203,8 +184,10 @@ namespace turbo::keyboard {
 					readLock.unlock();
 					return nullptr;
 				}
+				
 
 				retstr[gi] = getChar();
+				serial::log("%s", retstr);
 				gi++;
 			}
 		}
@@ -223,10 +206,8 @@ namespace turbo::keyboard {
 			serial::log("[!!] Already init: keyboard\n");
 			return;
 		}
-		buff = (char*)calloc(1024, sizeof(char));
-		retstr = new char[1024];
-		registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
-
+		buff = (char*) calloc(1024, sizeof(char));
+		idt::registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
 		serial::newline();
 		isInit = true;
 	}

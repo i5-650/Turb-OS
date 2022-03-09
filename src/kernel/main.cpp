@@ -119,16 +119,12 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		turbo::terminal::check("Initialising VFS ...");
-		turbo::vfs::init();
-		turbo::terminal::okerr(turbo::vfs::isInit);
-
 		//turbo::shell::run();
 		scheduler::createProc("Init", (uint64_t)turbo::shell::run, 0);
-		turbo::serial::log("Starting shell");
+		//turbo::serial::log("Starting shell");
 		scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
 
-		printf("good2\n");
+		//printf("good2\n");
 		//turbo::shell::run();
 
 		scheduler::init();

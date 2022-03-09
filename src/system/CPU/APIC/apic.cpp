@@ -229,6 +229,7 @@ namespace turbo::apic {
 		lapicTimerMask(true);
 
 		lapicWrite(DIVIDE_CONF_REGISTER, 0x03);
+		//																					|-> the only difference
 		lapicWrite(LVT_TIMER_REGISTER, (((lapicRead(LVT_TIMER_REGISTER) & ~(0x03 << 17)) | (0x01 << 17)) & 0xFFFFFF00) | vector);
 		lapicWrite(INITIAL_COUNT_REGISTER, (tickCountInMS * mSeconds));
 		

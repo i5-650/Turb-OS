@@ -150,19 +150,17 @@ namespace turbo::shell{
         path = new char[128];
         while(true){
             if(!currentNode){
-                turbo::serial::log("not");
                 currentNode = (turbo::vfs::tfs_node_t*)malloc(sizeof(turbo::vfs::tfs_node_t));
                 currentNode->flags = turbo::vfs::TFS_FOLDER;
                 strcpy(currentNode->path,"~");
             }
             printf("%sroot%s@%s%s%s%s%s",BRED,RESET,BRED,currentNode->path,RESET,":",RESET);
             char *command = turbo::keyboard::getLine();
-            serial::log("he");
+            serial::log("noped");
             char tmp[10] = "\0";
 
             for(size_t i = 0; i<strlen(command);i++){
-                serial::log("len %d", strlen(command));
-                if(command[i] != ' ' && command[i] != '0'){
+                if(command[i] != ' ' && command[i] != '\0'){
                     char c[2] = "\0";
                     c[0] = command[i];
                     strcat(tmp,c); 

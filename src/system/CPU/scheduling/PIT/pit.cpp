@@ -56,6 +56,7 @@ namespace turbo::pit{
 
 	static void pitHandler(registers_t* regs){
 		tick++;
+		
 		if(isScheduling){
 			turbo::scheduler::switchTask(regs);
 		}

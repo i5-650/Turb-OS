@@ -123,7 +123,7 @@ namespace turbo::idt {
 			return;
 		}
 
-		printf("PANIC Exception: %s\n", (char*)exception_messages[regs->int_no & 0xff]);
+		printf("PANIC Exception: %s\n", (char*)exception_messages[regs->int_no]);
 
 		switch (regs->int_no){
 			case 8:
