@@ -232,19 +232,19 @@ namespace turbo::scheduler {
     }
 
     void clean_proc(process_t *proc){
-        if (proc == nullptr){
+        if(proc == nullptr){
             return;
         }
 
-        if (proc->state == KILLED){
+        if(proc->state == KILLED){
 
-            for (size_t i = 0; i < proc->children.size(); i++){
+            for(size_t i = 0; i < proc->children.size(); i++){
                 process_t *childproc = proc->children[i];
                 childproc->state = KILLED;
                 clean_proc(childproc);
             }
 
-            for (size_t i = 0; i < proc->threadsVec.size(); i++){
+            for(size_t i = 0; i < proc->threadsVec.size(); i++){
                 thread_t *thread = proc->threadsVec[i];
                 proc->threadsVec.remove(proc->threadsVec.find(thread));
                 free(thread->thread_stack);
@@ -257,7 +257,7 @@ namespace turbo::scheduler {
             if(parentproc != nullptr){
                 parentproc->children.remove(parentproc->children.find(proc));
                 
-                if (parentproc->children.size() == 0 && proc->threadsVec.size() == 0){
+                if(parentproc->children.size() == 0 && proc->threadsVec.size() == 0){
                     parentproc->state = KILLED;
                     clean_proc(parentproc);
                 }
@@ -296,6 +296,7 @@ namespace turbo::scheduler {
         if(!this_proc() || !this_thread()){
             for(size_t i = 0; i < proc_table.size(); i++){
                 process_t *proc = proc_table[i];
+
                 if(proc->state != READY){
                     clean_proc(proc);
                     continue;
@@ -303,6 +304,7 @@ namespace turbo::scheduler {
 
                 for(size_t t = 0; t < proc->threadsVec.size(); t++){
                     thread_t *thread = proc->threadsVec[t];
+                    
                     if(thread->state != READY){
                         continue;
                     }
