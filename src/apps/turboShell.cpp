@@ -1,16 +1,34 @@
 #include <drivers/display/terminal/terminal.hpp>
-#include <system/CPU/scheduling/HPET/hpet.hpp>
+#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
+#include <system/CPU/scheduling/PIT/pit.hpp>
+#include <system/CPU/scheduling/RTC/rtc.hpp>
 #include <drivers/devices/keyboard.hpp>
-#include <drivers/display/terminal/printf.h>
 #include <lib/string.hpp>
 #include <drivers/display/serial/serial.hpp>
-#include <apps/turboShell.hpp>
 #include <system/ACPI/acpi.hpp>
-#include <stddef.h>
 #include <lib/panic.hpp>
 #include <drivers/fs/vfs/turboVFS.hpp>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
 #include <lib/color.h>
+#include <kernel/kernel.hpp>
+#include <drivers/display/ssfn/ssfn.hpp>
+#include <system/memory/pMemory/pMemory.hpp>
+#include <apps/turboShell.hpp>
+
+void myTime(){
+	while(true){
+		size_t size = 0;
+		for(size_t i = 0; i < STACK_SIZE; ++i){
+			if(kernelStack[i] != 'A'){
+				break;
+			}
+			size++;
+		}
+		ssfn::setColor(ssfn::fgcolor, 0xFF0000); // red
+		ssfn::printfAt(0,0,"\r%s", rtc::getTime());
+		ssfn::printfAt(0, 1, "\rFREE RAM: %zu KB", (pMemory::getFreeRam() / 1024 / 1024));
+	}
+}
 
 
 namespace turbo::shell{
@@ -21,7 +39,9 @@ namespace turbo::shell{
     void parse(char* cmd,char *arg){
         switch(hash(cmd)){
             case hash("turbo"):
-                printf("2FAST4U\n");
+                scheduler::createProc("Init", reinterpret_cast<uint64_t>(turbo::shell::run), 0);
+				scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
+				scheduler::init();
                 break;
 
             case hash("help"):
@@ -103,7 +123,7 @@ namespace turbo::shell{
                     return;
                 }
                 if(!strcmp(arg,"..") || !strcmp(arg,"../")){
-                    int length = sizeof(path);
+                    //int length = sizeof(path);
                     currentNode = currentNode->parent;
                     return;
                 }
@@ -147,7 +167,7 @@ namespace turbo::shell{
     void run(){
         turbo::serial::log("Starting the TurboShell ! \n");
 
-        path = new char[128];
+        path = (char*) malloc(sizeof(char)* 128);
         while(true){
             if(!currentNode){
                 currentNode = (turbo::vfs::tfs_node_t*)malloc(sizeof(turbo::vfs::tfs_node_t));
@@ -156,15 +176,15 @@ namespace turbo::shell{
             }
             printf("%sroot%s@%s%s%s%s%s",BRED,RESET,BRED,currentNode->path,RESET,":",RESET);
             char *command = turbo::keyboard::getLine();
-            serial::log("noped");
             char tmp[10] = "\0";
 
-            for(size_t i = 0; i<strlen(command);i++){
+            for(size_t i = 0; i < strlen(command);i++){
                 if(command[i] != ' ' && command[i] != '\0'){
                     char c[2] = "\0";
                     c[0] = command[i];
                     strcat(tmp,c); 
-                }else break;
+                }
+				else break;
             }
             char *arguments = strrm(command, tmp);
             arguments = strrm(arguments," ");

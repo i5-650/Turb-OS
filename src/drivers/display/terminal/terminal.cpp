@@ -23,7 +23,7 @@ namespace turbo::terminal {
 		serial::log("[+] Initialising terminal\n");
 
 		//void *write_ptr = (void*)term_tag->term_write;
-		write = (void (*)(const char *string, uint64_t length))term_tag->term_write;
+		write = reinterpret_cast<void (*)(const char *, uint64_t)>(term_tag->term_write);
 		columns = term_tag->cols;
 		rows = term_tag->rows;
 	}

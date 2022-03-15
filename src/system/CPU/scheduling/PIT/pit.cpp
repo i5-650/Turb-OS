@@ -7,6 +7,7 @@
 #include <lib/lock.hpp>
 
 namespace turbo::pit{
+
 	bool isInit = false;
 	bool isScheduling = false;
 	volatile uint64_t tick = 0;
@@ -73,6 +74,7 @@ namespace turbo::pit{
 		setFrequence(f);
 		turbo::idt::registerInterruptHandler(idt::IRQ0, pitHandler);
 
+		serial::newline();
 		isInit = true;
 	}
 }

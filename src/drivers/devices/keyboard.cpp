@@ -1,17 +1,16 @@
-#include <drivers/devices/SCT.hpp>
+#include <drivers/devices/scancodes.hpp>
 #include <drivers/devices/keyboard.hpp>
 #include <drivers/display/terminal/terminal.hpp>
-#include <drivers/display/serial/serial.hpp>
 #include <system/CPU/IDT/idt.hpp>
+#include <system/ACPI/acpi.hpp>
 #include <lib/string.hpp>
 #include <lib/memory/memory.hpp>
 #include <lib/lock.hpp>
+#include <drivers/display/serial/serial.hpp>
 #include <lib/portIO.hpp>
-#include <system/memory/heap/heap.hpp>
-#include <system/ACPI/acpi.hpp>
-#include <lib/cpu/cpu.hpp>
 
 namespace turbo::keyboard {
+
 	bool isInit = false;
 
 	char retstr[1024] = "\0";
@@ -23,56 +22,57 @@ namespace turbo::keyboard {
 
 	kbd_mod_t kbd_mod;
 
-	char getASCIIchar(uint8_t key_code){
-		if(!kbd_mod.shift && !kbd_mod.capslock){
+	// Scancode to ascii
+	char get_ascii_char(uint8_t key_code)
+	{
+		if (!kbd_mod.shift && !kbd_mod.capslock){
 			return kbdus[key_code];
 		}
-
-		if(kbd_mod.shift && !kbd_mod.capslock){
+		if (kbd_mod.shift && !kbd_mod.capslock){
 			return kbdus_shft[key_code];
 		}
-
-		if(!kbd_mod.shift && kbd_mod.capslock){
+		if (!kbd_mod.shift && kbd_mod.capslock){
 			return kbdus_caps[key_code];
 		}
-
-		if(kbd_mod.shift && kbd_mod.capslock){
+		if (kbd_mod.shift && kbd_mod.capslock){
 			return kbdus_capsshft[key_code];
 		}
-
 		return 0;
 	}
 
-	static void handleComb(uint8_t scancode){
-		char ch = getASCIIchar(scancode);
+	// Handle key combinations
+	void handle_comb(uint8_t scancode){
+		char ch = get_ascii_char(scancode);
 
-		if(kbd_mod.ctrl && kbd_mod.alt && scancode == keys::DELETE){
+		// Reboot the os: CTRL + ALT + DEL
+		if (kbd_mod.ctrl && kbd_mod.alt && scancode == keys::DELETE){
 			acpi::reboot();
 		}
-		else if(kbd_mod.ctrl && ((ch == 'l') || (ch == 'L'))){
+		else if (kbd_mod.ctrl && ((ch == 'l') || (ch == 'L'))){
 			terminal::clear();
-			if(reading){
+			if (reading){
 				memset(retstr, '\0', 1024);
 				enter = true;
 			}
 		}
 	}
 
-	char* buff;
+	// Keyboard buffer
+	char *buff;
 	char c[10] = "\0";
 
+	// Clear keyboard buffer
 	void clearBuffer(){
-		for(size_t i = 0; i < strlen(buff); i++){
+		for (size_t i = 0; i < strlen(buff); i++){
 			buff[i] = '\0';
 		}
 	}
-
+	// Main keyboard handler
 	static void Keyboard_Handler(registers_t *){
 		uint8_t scancode = inb(0x60);
 
-		if(scancode & 0x80){
-			switch(scancode){
-				// same case
+		if (scancode & 0x80){
+			switch (scancode){
 				case keys::L_SHIFT_UP:
 				case keys::R_SHIFT_UP:
 					kbd_mod.shift = false;
@@ -86,8 +86,7 @@ namespace turbo::keyboard {
 			}
 		}
 		else{
-			switch(scancode){
-				// same case
+			switch (scancode){
 				case keys::L_SHIFT_DOWN:
 				case keys::R_SHIFT_DOWN:
 					kbd_mod.shift = true;
@@ -107,14 +106,6 @@ namespace turbo::keyboard {
 				case keys::SCROLLLOCK:
 					kbd_mod.scrolllock = (!kbd_mod.scrolllock) ? true : false;
 					break;
-				case keys::RIGHT:
-					strcpy(c, "\033[C");
-					terminal::cursor_right();
-					break;
-				case keys::LEFT:
-					strcpy(c, "\033[D");
-					terminal::cursor_left();
-					break;
 				case keys::UP:
 					strcpy(c, "\033[A");
 					terminal::cursor_up();
@@ -123,25 +114,40 @@ namespace turbo::keyboard {
 					strcpy(c, "\033[B");
 					terminal::cursor_down();
 					break;
+				case keys::RIGHT:
+					strcpy(c, "\033[C");
+					terminal::cursor_right();
+					break;
+				case keys::LEFT:
+					strcpy(c, "\033[D");
+					terminal::cursor_left();
+					break;
 				default:
 					memset(c, 0, strlen(c));
-					c[0] = getASCIIchar(scancode);
-					if(kbd_mod.alt || kbd_mod.ctrl){
-						handleComb(scancode);
+					c[0] = get_ascii_char(scancode);
+					if (kbd_mod.alt || kbd_mod.ctrl){
+						char ch = char2up(c[0]);
+
+						if (kbd_mod.ctrl){
+							if ((ch >= 'A' && ch <= '_') || ch == '?' || ch == '0'){
+								printf("%c", escapes[char2num(ch)]);
+							}
+						}
+						else if (kbd_mod.alt) printf("\x1b[%c", ch);
+						handle_comb(scancode);
 					}
 					else{
-						switch(c[0]){
+						switch (c[0]){
 							case '\n':
 								printf("\n");
 								clearBuffer();
 								enter = true;
 								break;
 							case '\b':
-								if(buff[0] != '\0'){
+								if (buff[0] != '\0')
+								{
 									buff[strlen(buff) - 1] = '\0';
-									if(reading){
-										retstr[--gi] = 0;
-									}
+									if(reading)retstr[--gi] = 0;
 									printf("\b \b");
 								}
 								break;
@@ -152,62 +158,54 @@ namespace turbo::keyboard {
 								break;
 						}
 					}
-				break;
+					break;
 			}
 		}
 	}
 
-	char getChar(){
-		while(!pressed);
+	char getchar(){
+		while (!pressed);
 		pressed = false;
 		return c[0];
 	}
 
-	DEFINE_LOCK(readLock);
+	DEFINE_LOCK(getLine_lock);
 	char *getLine(){
-		readLock.lock();
+		getLine_lock.lock();
 		reading = true;
 		memset(retstr, '\0', 1024);
-		serial::log("enter %d", enter);
-		serial::log("pressed %d", pressed);
-		while(!enter){
-			if(pressed){
-
-				serial::log("if enter %d", enter);
-				serial::log("if pressed %d", pressed);
-				
-				if(gi >= 1024 - 1){
-					printf("\nBuffer Overflow !");
+		while (!enter){
+			if (pressed){
+				if (gi >= 1024 - 1){
+					printf("\nBuffer Overflow\n");
 					enter = false;
 					reading = false;
 					gi = 0;
-					readLock.unlock();
+					getLine_lock.unlock();
 					return nullptr;
 				}
-				
-
-				retstr[gi] = getChar();
-				serial::log("%s", retstr);
+				retstr[gi] = getchar();
 				gi++;
 			}
 		}
-
 		enter = false;
 		reading = false;
 		gi = 0;
-		readLock.unlock();
+		getLine_lock.unlock();
 		return retstr;
 	}
 
 	void init(){
-		serial::log("[+] Initialising PS/2 Keyboard");
+		serial::log("Initialising PS/2 keyboard");
 
-		if(isInit){
-			serial::log("[!!] Already init: keyboard\n");
+		if (isInit){
+			serial::log("PS/2 keyboard has already been isInit!\n");
 			return;
 		}
-		buff = (char*) calloc(1024, sizeof(char));
+
+		buff = static_cast<char*>(calloc(1024, sizeof(char)));
 		idt::registerInterruptHandler(idt::IRQ1, Keyboard_Handler);
+
 		serial::newline();
 		isInit = true;
 	}
