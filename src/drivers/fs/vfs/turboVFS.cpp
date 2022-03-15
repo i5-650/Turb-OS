@@ -227,7 +227,7 @@ namespace turbo::vfs{
         }
 
         tfs_node_t *parentNode;
-        tfs_node_t *childNode;
+        tfs_node_t *childNode = nullptr;
         size_t items;
         size_t cleared = 0;
 
@@ -268,7 +268,7 @@ namespace turbo::vfs{
         }
 
         tfs_node_t *parentNode;
-        tfs_node_t *childNode;
+        tfs_node_t *childNode = nullptr;
         size_t items;
         size_t cleared = 0;
 

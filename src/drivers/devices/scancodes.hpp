@@ -41,7 +41,6 @@ namespace turbo::keyboard {
 		'\x14', '\x15', '\x16', '\x17', '\x18', '\x19', '\x1A', '\x1B', '\x1C', '\x1D',
 		'\x1E', '\x1F', [0x7F] = '\x7F'
 	};
-
 	unsigned char kbdus[128] =
 	{
 		0,  27, '&', 'e', '"', '\'', '(', '-', 'e', '_',	/* 9 */
@@ -122,7 +121,7 @@ namespace turbo::keyboard {
 		0,	/* All other keys are undefined */
 	};
 
-	unsigned char kbdus_caps[128] =
+	unsigned char kbdus_capsshft[128] =
 	{
 		0,  27, '&', 'e', '"', '\'', '(', '-', 'e', '_',	/* 9 */
 		'c', 'a', ')', '=', '\b',	/* Backspace */
@@ -162,7 +161,7 @@ namespace turbo::keyboard {
 	0,	/* All other keys are undefined */
 	};
 
-	unsigned char kbdus_capsshft[128] =
+	unsigned char kbdus_caps[128] =
 	{
 		0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
 		'9', '0', '*', '+', '\b',	/* Backspace */

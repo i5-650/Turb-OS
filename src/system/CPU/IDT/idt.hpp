@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <lib/cpu/cpu.hpp>
+#include <stdint.h>
 
 namespace turbo::idt {
 
@@ -26,37 +26,36 @@ namespace turbo::idt {
 		IRQ15 = 47,
 	};
 
-	struct [[gnu::packed]] idtEntry_t{
-		uint16_t offset_1;
-		uint16_t selector;
-		uint8_t ist;
-		uint8_t type_attr;
-		uint16_t offset_2;
-		uint32_t offset_3;
-		uint32_t zero;
+	struct [[gnu::packed]] IDTEntry{
+		uint16_t Offset1;
+		uint16_t Selector;
+		uint8_t IST;
+		uint8_t TypeAttr;
+		uint16_t Offset2;
+		uint32_t Offset3;
+		uint32_t Zero;
 	};
 
-	struct [[gnu::packed]] idtr_t{
-		uint16_t limit;
-		uint64_t base;
+	struct [[gnu::packed]] IDTPtr{
+		uint16_t Limit;
+		uint64_t Base;
 	};
-	
+
 	using intHandler_t = void (*)(registers_t *);
 
-	extern idtEntry_t idt[];
-	extern idtr_t idtr;
+	extern IDTEntry idt[];
+	extern IDTPtr idtr;
 
 	extern intHandler_t interrupt_handlers[];
 
 	extern bool isInit;
 
+	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t typeattr = 0x8E, uint8_t ist = 0);
 	void reload();
 
-	uint8_t allocVector();
+	extern "C" void *int_table[];
 	void init();
-	void registerInterruptHandler(uint8_t vector, intHandler_t handler, bool ioapic = true);
-	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr = 0x8E, uint8_t ist = 0);
 
-	extern "C" void int_handler(registers_t *regs);
-	extern "C" void* int_table[];
+	uint8_t allocVector();
+	void registerInterruptHandler(uint8_t vector, intHandler_t handler, bool ioapic = true);
 }

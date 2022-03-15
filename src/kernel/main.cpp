@@ -39,14 +39,15 @@ namespace turbo {
 				size++;
 			}
 			ssfn::setColor(ssfn::fgcolor, 0xFF0000); // red
-			ssfn::printfAt(0,0,"%s", rtc::getTime());
-			ssfn::printfAt(0, 1, "FREE RAM: %zu KB", (pMemory::getFreeRam() / 1024 / 1024));
+			ssfn::printfAt(0,0,"\r%s", rtc::getTime());
+			ssfn::printfAt(0, 1, "\rFREE RAM: %zu KB", (pMemory::getFreeRam() / 1024 / 1024));
 		}
 	}
 
 	void main(){
 
 		turbo::serial::log("Turb OS");
+		turbo::terminal::center("Welcome Turb OS");
 
 		turbo::serial::log("CPU cores available: %d", smp_tag->cpu_count);
 		turbo::serial::log("Total usable memory: %ld MB\n", getmemsize() / 1024 / 1024);
@@ -57,8 +58,6 @@ namespace turbo {
 		for(uint64_t t = 0; t < mod_tag->module_count; t++){
 			turbo::serial::log("%d) %s", t + 1, mod_tag->modules[t].string);
 		}
-
-		turbo::terminal::center("Welcome Turb OS");
 
 		printf("CPU cores available: %ld\n", smp_tag->cpu_count);
 		printf("Total usable memory: %ld MB\n", getmemsize() / 1024 / 1024);
@@ -106,11 +105,6 @@ namespace turbo {
 		turbo::smp::init();
 		turbo::terminal::okerr(turbo::smp::isInit);
 
-		turbo::terminal::check("Initialising VFS ...");
-		turbo::vfs::init();
-		turbo::terminal::okerr(turbo::vfs::isInit);
-
-
 		turbo::terminal::check("Initialising PS/2 Keyboard...");
 		turbo::keyboard::init();
 		turbo::terminal::okerr(turbo::keyboard::isInit);
@@ -119,14 +113,21 @@ namespace turbo {
 		turbo::mouse::init();
 		turbo::terminal::okerr(turbo::mouse::isInit);
 
-		//turbo::shell::run();
-		scheduler::createProc("Init", (uint64_t)turbo::shell::run, 0);
+		turbo::terminal::check("Initialising VFS ...");
+		turbo::vfs::init();
+		turbo::terminal::okerr(turbo::vfs::isInit);
+
+
+
+		//scheduler::createProc("Init", reinterpret_cast<uint64_t>(turbo::shell::run), 0);
 		//turbo::serial::log("Starting shell");
-		scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
+		//scheduler::createProc("Sub", reinterpret_cast<uint64_t>(myTime), 1);
+		//scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
+		//scheduler::createThread((uint64_t) turbo::shell::run, 0, scheduler::initproc);
 
 		//printf("good2\n");
-		//turbo::shell::run();
+		turbo::shell::run();
 
-		scheduler::init();
+		//scheduler::init();
 	}
 }

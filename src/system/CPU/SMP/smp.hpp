@@ -2,9 +2,10 @@
 #include <system/CPU/GDT/gdt.hpp>
 #include <stddef.h>
 #include <system/CPU/scheduling/scheduler/scheduler.hpp>
-#include <stdint.h>
 
 using namespace turbo;
+
+
 
 #define thisCPU \
 ({ \
@@ -24,10 +25,11 @@ namespace turbo::smp {
 		void (*fpuSave)(void*);
 		void (*fpuRestore)(void*);
 
-		bool isUp;
 		scheduler::thread_t* currentThread;
 		scheduler::process_t* currentProcess;
 		scheduler::process_t* idleP;
+
+		bool isUp;
 	};
 
 	extern cpu_t *cpus;

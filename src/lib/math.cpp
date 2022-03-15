@@ -4,7 +4,7 @@ static unsigned long next = 1;
 
 int pow(int base, int exp){
 	int result = 1;
-	for (exp = exp; exp > 0; exp--) result *= base;
+	for (; exp > 0; exp--) result *= base;
 	return result;
 }
 

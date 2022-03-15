@@ -5,9 +5,6 @@
 #define DEFAULT_FREQ 100
 
 namespace turbo::hpet {
-	#define SECS(num) ((num) * 1000000)
-	#define MSECS(num) ((num) * 10000)
-	#define MISECS(num) ((num) * 10)
 
 	struct HPET {
 		uint64_t generalCapabilities;

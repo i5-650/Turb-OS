@@ -202,7 +202,7 @@ namespace turbo::scheduler {
         asm volatile ("cli");
         if(this_proc() == initproc && this_proc()->threadsVec.size() == 1 && this_proc()->children.size() == 0){
             serial::log("Can not kill init process!");
-            return;
+			return;
         }
         this_thread()->state = KILLED;
         serial::log("Exiting thread with TID: %d and PID: %d", this_thread()->TID, this_proc()->PID);
@@ -360,6 +360,7 @@ namespace turbo::scheduler {
                     goto success;
                 }
             }
+			/*
             for (size_t p = 0; p < proc_table.find(this_proc()) + 1; p++){
                 process_t *proc = proc_table[p];
                 if(proc->state != READY){
@@ -379,7 +380,7 @@ namespace turbo::scheduler {
                     timeslice = this_thread()->sliceOfTime;
                     goto success;
                 }
-            }
+            }*/
         }
         goto nofree;
 

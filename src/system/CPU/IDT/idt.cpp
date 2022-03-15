@@ -1,34 +1,31 @@
 #include <drivers/display/terminal/terminal.hpp>
-#include <drivers/display/serial/serial.hpp>
-#include <system/CPU/IDT/idt.hpp>
-#include <lib/lock.hpp>
-#include <lib/portIO.hpp>
-#include <system/CPU/PIC/pic.hpp>
 #include <system/CPU/APIC/apic.hpp>
 #include <system/CPU/SMP/smp.hpp>
-#include <system/CPU/scheduling/scheduler/scheduler.hpp>
+#include <system/CPU/IDT/idt.hpp>
+#include <system/CPU/PIC/pic.hpp>
 #include <lib/panic.hpp>
-using namespace turbo;
-
+#include <lib/lock.hpp>
+#include <drivers/display/serial/serial.hpp>
+#include <lib/portIO.hpp>
 
 namespace turbo::idt {
 
 	DEFINE_LOCK(idt_lock);
 	bool isInit = false;
 
-	idtEntry_t idt[256];
-	idtr_t idtr;
+	IDTEntry idt[256];
+	IDTPtr idtr;
 
 	intHandler_t interrupt_handlers[256];
 
-	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t type_attr, uint8_t ist){
-		idt[vector].offset_1 = (uint64_t)isr;
-		idt[vector].selector = 0x28;
-		idt[vector].ist = ist;
-		idt[vector].type_attr = type_attr;
-		idt[vector].offset_2 = ((uint64_t)isr) >> 16;
-		idt[vector].offset_3 = ((uint64_t)isr) >> 32;
-		idt[vector].zero = 0;
+	void idtSetDescriptor(uint8_t vector, void *isr, uint8_t typeattr, uint8_t ist){
+		idt[vector].Offset1 = reinterpret_cast<uint64_t>(isr);
+		idt[vector].Selector = 0x28;
+		idt[vector].IST = ist;
+		idt[vector].TypeAttr = typeattr;
+		idt[vector].Offset2 = reinterpret_cast<uint64_t>(isr) >> 16;
+		idt[vector].Offset3 = reinterpret_cast<uint64_t>(isr) >> 32;
+		idt[vector].Zero = 0;
 	}
 
 	void reload(){
@@ -38,23 +35,26 @@ namespace turbo::idt {
 	}
 
 	void init(){
-		serial::log("[+] Initialising IDT");
+		serial::log("Initialising IDT");
 
-		if(isInit){
-			serial::log("[!!] Already init: IDT\n");
+		if (isInit){
+			serial::log("IDT has already been initialised!\n");
 			return;
 		}
 
 		idt_lock.lock();
 
-		idtr.limit = sizeof(idtEntry_t) * 256 - 1;
-		idtr.base = (uintptr_t)&idt[0];
+
+		idtr.Limit = sizeof(IDTEntry) * 256 - 1;
+		idtr.Base = (uintptr_t)&idt[0];
 
 		for(size_t i = 0; i < 256; i++){
 			idtSetDescriptor(i, int_table[i]);
 		}
 		idtSetDescriptor(SYSCALL, int_table[SYSCALL], 0xEE);
+
 		pic::init();
+
 		reload();
 
 		serial::newline();
@@ -62,15 +62,15 @@ namespace turbo::idt {
 		idt_lock.unlock();
 	}
 
-	static uint8_t nextFree = 48;
+	static uint8_t next_free = 48;
 	uint8_t allocVector(){
-		return (++nextFree == SYSCALL ? ++nextFree : nextFree);
+		return (++next_free == SYSCALL ? ++next_free : next_free);
 	}
 
 	void registerInterruptHandler(uint8_t vector, intHandler_t handler, bool ioapic){
 		interrupt_handlers[vector] = handler;
 		if(ioapic && apic::isInit && vector > 31 && vector < 48){
-			apic::ioapicRedirectIRQ(vector - 32, vector);
+			apic::ioapicRedirectIRQ(vector - 32,vector);
 		}
 	}
 
@@ -110,8 +110,9 @@ namespace turbo::idt {
 	};
 
 	static volatile bool halt = true;
-	void exception_handler(registers_t *regs){
-		serial::log("System exception! %s", (char*)exception_messages[regs->int_no & 0xFF]);
+	static void exception_handler(registers_t *regs){
+		serial::log("System exception!");
+		serial::log("Exception: %s on CPU %d", (char*)exception_messages[regs->int_no], thisCPU->lapicID);
 		serial::log("Error code: 0x%lX", regs->error_code);
 
 		switch (regs->int_no)
@@ -119,11 +120,12 @@ namespace turbo::idt {
 		}
 
 		if(!halt){
-			serial::log("youpi");
+			serial::newline();
 			return;
 		}
 
-		printf("PANIC Exception: %s\n", (char*)exception_messages[regs->int_no]);
+		printf("\n[\033[31mPANIC\033[0m] System Exception!\n");
+		printf("[\033[31mPANIC\033[0m] Exception: %s on CPU %d\n", (char*)exception_messages[regs->int_no], thisCPU->lapicID);
 
 		switch (regs->int_no){
 			case 8:
@@ -132,14 +134,13 @@ namespace turbo::idt {
 			case 12:
 			case 13:
 			case 14:
-				printf("PANIC Error code: 0x%lX\n", regs->error_code);
+				printf("[\033[31mPANIC\033[0m] Error code: 0x%lX\n", regs->error_code);
 				break;
 		}
 
-		printf("PANIC System halted!\n");
-		serial::log("[/!\\]System halted\n");
-
-		if(scheduler::this_thread()->state == scheduler::RUNNING){
+		printf("[\033[31mPANIC\033[0m] System halted!\n");
+		serial::log("System halted!\n");
+		if (scheduler::this_thread()->state == scheduler::RUNNING){
 			asm volatile ("cli");
 			thisCPU->currentThread->state = scheduler::READY;
 			asm volatile ("sti");
@@ -147,11 +148,10 @@ namespace turbo::idt {
 		asm volatile ("cli; hlt");
 	}
 
-	void irq_handler(registers_t *regs){
+	static void irq_handler(registers_t *regs){
 		if(interrupt_handlers[regs->int_no]){
 			interrupt_handlers[regs->int_no](regs);
 		}
-
 		if(apic::isInit){
 			apic::endOfInterrupt();
 		}
@@ -161,14 +161,14 @@ namespace turbo::idt {
 	}
 
 	extern "C" void int_handler(registers_t *regs){
-		if (regs->int_no < 32 ){
+		if(regs->int_no < 32){
 			exception_handler(regs);
 		}
 		else if(regs->int_no >= 32 && regs->int_no < 256){
 			irq_handler(regs);
 		}
-		else {
-			PANIC("UNKNOW INTERRUPT");
+		else{
+			PANIC("Unknown interrupt!");
 		}
 	}
 }

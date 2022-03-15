@@ -2,11 +2,7 @@
 #include <system/CPU/scheduling/HPET/hpet.hpp>
 #include <system/ACPI/acpi.hpp>
 #include <drivers/display/serial/serial.hpp>
-#include <drivers/display/terminal/printf.h>
-#include <system/CPU/scheduling/scheduler/scheduler.hpp>
-#include <lib/lock.hpp>
-#include <system/CPU/IDT/idt.hpp>
-#include <lib/portIO.hpp>
+#include <system/CPU/scheduling/ohMyTime/omtime.hpp>
 
 using namespace turbo;
 
@@ -14,8 +10,6 @@ namespace turbo::hpet{
 	bool isInit = false;
 	static uint32_t clock = 0;
 	HPET* hpet;
-
-	DEFINE_LOCK(hpet_lock);
 	 
 	char* hour(){
 
@@ -32,11 +26,11 @@ namespace turbo::hpet{
 	}
 
 	void mSleep(uint64_t mSeconds){
-		uSleep(MSECS(mSeconds));
+		uSleep(MSEC_TO_US(mSeconds));
 	}
 
 	void sleep(uint64_t seconds){
-		uSleep(SECS(seconds));
+		uSleep(SEC_TO_US(seconds));
 	}
 	
 	void init(){

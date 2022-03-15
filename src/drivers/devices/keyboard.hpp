@@ -1,11 +1,10 @@
 #pragma once
 
 #include <stdint.h>
-#include <kernel/kernel.hpp>
 
 namespace turbo::keyboard {
-	
-	struct kbd_mod_t {
+
+	struct kbd_mod_t{
 		bool shift : 1;
 		bool ctrl : 1;
 		bool alt : 1;
@@ -15,11 +14,11 @@ namespace turbo::keyboard {
 	};
 
 	extern bool isInit;
-	extern char* buff;
+	extern char *buff;
 
 	void clearBuffer();
 
-	char getChar();
+	char getchar();
 	char *getLine();
 
 	void init();

@@ -24,7 +24,7 @@ isr i
 %assign i i+1
 %endrep
 
-; int array
+
 section .data
 int_table:
 %assign i 0

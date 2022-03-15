@@ -14,111 +14,113 @@
 using namespace turbo;
 
 namespace turbo::smp {
+
 	bool isInit = false;
 
-	DEFINE_LOCK(lockCPUSMP);
-
+	DEFINE_LOCK(cpu_lock);
 	volatile int cpusUp = 0;
-	cpu_t* cpus = nullptr;
+	cpu_t *cpus = nullptr;
 
 	extern "C" void InitSSE();
-
-	static void cpuInit(stivale2_smp_info* cpu){
-		lockCPUSMP.lock();
+	static void cpu_init(stivale2_smp_info *cpu)
+	{
+		cpu_lock.lock();
 		gdt::reloadAll(cpu->lapic_id);
 		idt::reload();
+
 		vMemory::switchPagemap(vMemory::kernel_pagemap);
 
-		set_kernel_gs((uintptr_t)cpu->extra_argument);
-		set_user_gs((uintptr_t)cpu->extra_argument);
+		set_kernel_gs(static_cast<uintptr_t>(cpu->extra_argument));
+		set_user_gs(static_cast<uintptr_t>(cpu->extra_argument));
 
 		thisCPU->lapicID = cpu->lapic_id;
 		thisCPU->tss = &gdt::tss[thisCPU->lapicID];
 
 		enableSSE();
-    	enableSMEP();
-    	enableSMAP();
-    	enableUMIP();
+		enableSMEP();
+		enableSMAP();
+		enableUMIP();
 
 		uint32_t a = 0, b = 0, c = 0, d = 0;
 		__get_cpuid(1, &a, &b, &c, &d);
-		if((c & bit_XSAVE)){
+		if ((c & bit_XSAVE))
+		{
 			write_cr(4, read_cr(4) | (1 << 18));
-
+			
 			uint64_t xcr0 = 0;
 			xcr0 |= (1 << 0);
 			xcr0 |= (1 << 1);
-
-			if((c & bit_AVX)){
-				xcr0 |= (1 << 2);
-			} 
-
-			if(__get_cpuid(7, &a, &b, &c, &d)){
-				if((b & bit_AVX512F)){
+			if ((c & bit_AVX)) xcr0 |= (1 << 2);
+			
+			if (__get_cpuid(7, &a, &b, &c, &d))
+			{
+				if ((b & bit_AVX512F))
+				{
 					xcr0 |= (1 << 5);
 					xcr0 |= (1 << 6);
 					xcr0 |= (1 << 7);
 				}
 			}
 			wrxcr(0, xcr0);
-
+			
 			thisCPU->fpuStorageSize = c;
+			
 			thisCPU->fpuSave = xsave;
 			thisCPU->fpuRestore = xrstor;
 		}
-		else {
+		else
+		{
 			thisCPU->fpuStorageSize = 512;
 			thisCPU->fpuSave = fxsave;
 			thisCPU->fpuRestore = fxrstor;
 		}
 
-		serial::log("[**] SMP: %ld up\n", thisCPU->cpuID);
+		serial::log("CPU %ld is up", thisCPU->lapicID);
 		thisCPU->isUp = true;
 		cpusUp++;
 
-		lockCPUSMP.unlock();
-
-		if(cpu->lapic_id != smp_tag->bsp_lapic_id){
-			if(apic::isInit){
-				apic::lapicInit(thisCPU->lapicID);
-			}
-			
+		cpu_lock.unlock();
+		if (cpu->lapic_id != smp_tag->bsp_lapic_id)
+		{
+			if (apic::isInit) apic::lapicInit(thisCPU->lapicID);
 			scheduler::init();
 		}
 	}
 
-	void init(){
-		serial::log("Initialising SMP\n");
+	void init()
+	{
+		serial::log("Initialising SMP");
 
-		if(isInit){
-			serial::log("already init: SMP\n");
+		if (isInit)
+		{
+			serial::log("CPUs are already up!\n");
 			return;
 		}
 
-		cpus = (cpu_t*)calloc(smp_tag->cpu_count, sizeof(cpu_t));
+		cpus = static_cast<cpu_t*>(calloc(smp_tag->cpu_count, sizeof(cpu_t)));
 
-		for(size_t i = 0; i < smp_tag->cpu_count; i++){
+		for (size_t i = 0; i < smp_tag->cpu_count; i++)
+		{
 			smp_tag->smp_info[i].extra_argument = (uint64_t)&cpus[i];
 			cpus[i].cpuID = i;
 
-			uint64_t schedulerStack = (uint64_t)malloc(STACK_SIZE);
+			uint64_t sched_stack = reinterpret_cast<uint64_t>(malloc(STACK_SIZE));
+			gdt::tss[i].IST[0] = sched_stack;
 
-			gdt::tss[i].IST[0] = schedulerStack + STACK_SIZE;
-
-
-			if(smp_tag->bsp_lapic_id != smp_tag->smp_info[i].lapic_id){
-				uint64_t stack = (uint64_t)(malloc(STACK_SIZE));
+			if (smp_tag->bsp_lapic_id != smp_tag->smp_info[i].lapic_id)
+			{
+				uint64_t stack = reinterpret_cast<uint64_t>(malloc(STACK_SIZE));
 				gdt::setStack(i, stack);
 
 				smp_tag->smp_info[i].target_stack = stack + STACK_SIZE;
-				smp_tag->smp_info[i].goto_address = (uintptr_t)cpuInit;
+				smp_tag->smp_info[i].goto_address = reinterpret_cast<uintptr_t>(cpu_init);
 			}
-			else {
-				cpuInit(&smp_tag->smp_info[i]);
-			}
+			else cpu_init(&smp_tag->smp_info[i]);
 		}
-		while((uint64_t)cpusUp < smp_tag->cpu_count);
-		serial::log("All cores up\n");
+
+		while (static_cast<uint64_t>(cpusUp) < smp_tag->cpu_count);
+
+		serial::log("All CPUs are up\n");
 		isInit = true;
 	}
 }

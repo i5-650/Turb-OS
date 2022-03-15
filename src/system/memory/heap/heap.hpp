@@ -27,7 +27,6 @@ class Heap {
     void coalescence();
 
     public:
-    bool debug = false;
     size_t pages = 0;
 
     void expand(size_t pagecount = 16);
