@@ -30,6 +30,11 @@ void myTime(){
 	}
 }
 
+void nano(){
+	while(true){
+		char* tmp = keyboard::getLine();
+	}
+}
 
 namespace turbo::shell{
     
@@ -38,16 +43,24 @@ namespace turbo::shell{
 
     void parse(char* cmd,char *arg){
         switch(hash(cmd)){
-            case hash("turbo"):
-                scheduler::createProc("Init", reinterpret_cast<uint64_t>(turbo::shell::run), 0);
+            case hash("nano"):
+				terminal::clear();
+                scheduler::createProc("Init", reinterpret_cast<uint64_t>(nano), 0);
 				scheduler::createThread((uint64_t)myTime, 0, scheduler::initproc);
 				scheduler::init();
-                break;
+                return;
 
             case hash("help"):
                 printf("All the listed command are not totally implement !\n");
                 printf("-turbo --Display a string into the terminal !\n");
                 printf("-help --Display all the implement commands and future implemented command !\n");
+				printf("-panic-- create a kernel panic \n");
+				printf("-clear --clear the terminal\n");
+				printf("-ls --list every directory and files\n");
+				printf("-cd --change directory\n");
+				printf("-mkdir --create a directory\n");
+				printf("-touch --create and empty file\n");
+				printf("-nano --a sort of nano to prouve Turb-OS is multi tasking\n");
                 break;
 
             case hash(""):
