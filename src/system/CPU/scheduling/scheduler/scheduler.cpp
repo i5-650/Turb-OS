@@ -9,6 +9,7 @@
 #include <drivers/display/serial/serial.hpp>
 #include <lib/TurboVector/TurboVector.hpp>
 #include <system/memory/heap/heap.hpp>
+#include <drivers/display/terminal/terminal.hpp>
 
 namespace turbo::scheduler {
 
@@ -59,7 +60,6 @@ namespace turbo::scheduler {
         thread_lock.lock();
         thread->state = READY;
         thread_lock.unlock();
-
         return thread;
     }
 

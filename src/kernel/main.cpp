@@ -38,7 +38,7 @@ namespace turbo {
 				}
 				size++;
 			}
-			ssfn::setColor(ssfn::fgcolor, 0xFF0000); // red
+			ssfn::setColor(ssfn::fgcolor, 0x001f52); // red
 			ssfn::printfAt(0,0,"\r%s", rtc::getTime());
 			ssfn::printfAt(0, 1, "\rFREE RAM: %zu KB", (pMemory::getFreeRam() / 1024 / 1024));
 		}
