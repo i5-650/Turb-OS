@@ -137,5 +137,5 @@ endif
 
 run:
 	echo "Turbooting \n"
-	echo $(QEMU) $(QEMUFLAGS) -no-reboot -no-shutdown -d int -D log.txt -machine smm=off -cdrom image.iso
-	$(QEMU) $(QEMUFLAGS) -no-shutdown -cdrom $(ISO) -drive if=pflash,format=raw,unit=0,file=$(SOURCEDIR)/../OVMF/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(SOURCEDIR)/../OVMF/OVMF_VARS-pure-efi.fd
+	echo $(QEMU) $(QEMUFLAGS) -d int -D log.txt -machine smm=off -cdrom image.iso
+	$(QEMU) $(QEMUFLAGS) -cdrom $(ISO) -drive if=pflash,format=raw,unit=0,file=$(SOURCEDIR)/../OVMF/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(SOURCEDIR)/../OVMF/OVMF_VARS-pure-efi.fd
