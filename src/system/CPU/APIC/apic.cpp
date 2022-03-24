@@ -28,7 +28,7 @@ namespace turbo::apic {
 		else{
 			x2apic_reg = reg >> 4;
 		}
-		return (x2apic_reg + 0x800);
+		return x2apic_reg + 0x800;
 	}
 
 	uint32_t lapicRead(uint32_t reg){
@@ -36,7 +36,7 @@ namespace turbo::apic {
 			return rdmsr(reg2x2apic(reg));
 		}
 
-		return mmind((void*)(acpi::lapicAddress + reg));
+		return mmind(((void*)(acpi::lapicAddress + reg)));
 	}
 
 	void lapicWrite(uint32_t reg, uint32_t value){
@@ -170,7 +170,7 @@ namespace turbo::apic {
 
 	void apicSendIPI(uint32_t lapic_id, uint32_t flags){
 		if(x2apic){
-			wrmsr(0x830, ((uint64_t)lapic_id << 32) | flags);
+			wrmsr(0x830, ((uint64_t)lapic_id) << 32 | flags);
 		}
 		else{
 			lapicWrite(INTERRUPT_COMMAND_REGISTER, (lapic_id << 24));
