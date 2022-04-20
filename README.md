@@ -1,5 +1,5 @@
 # Turb-OS
-supervized project
+A small OS made in C/C++, made for a supervized project ! 
 
 ## What's the goal ?
 
