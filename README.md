@@ -1,5 +1,5 @@
 # Turb-OS
-A small OS made in C/C++, made for a supervized project ! 
+A small OS made in C/C++, made for a supervized project ! The project is currently on hold and may have some updates later.  
 
 ## What's the goal ?
 
@@ -19,6 +19,7 @@ Meaning we want to implement:
 - xorriso
 - wget
 - tar
+You may encounter problems while compiling on the asm files, an error about reference. Using development version of those tools may solve it (I used to be on manjaro and have development version tools, didn't find yet where the bug comes from)
 
 ### Install tools
 ```
@@ -49,6 +50,5 @@ make -j$(nproc --all)
 - [x] serial debugging
 - [x] kernel panic
 - [x] HPET (not tested)
-- [] scheduler
-- [] VFS
-- [] THE small detail
+- [x] scheduler
+- [x] VFS
