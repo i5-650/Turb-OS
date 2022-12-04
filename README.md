@@ -1,5 +1,7 @@
 # Turb-OS
-A small OS made in C/C++, made for a supervized project ! The project is currently on hold and may have some updates later.  
+This project was done to be a school projet, it's NOT an example... About why and how, everything is explained bellow. 
+There is an `image.iso` which is the last working Turb-OS' ISO. 
+You can try to compile it by yourself, but Turb-OS is based on an old version of `limine`. 
 
 ## What's the goal ?
 
@@ -52,3 +54,13 @@ make -j$(nproc --all)
 - [x] HPET (not tested)
 - [x] scheduler
 - [x] VFS
+
+## Quick preview
+### Starting and Commands
+![Starting and Commands](screens/introduction.png)
+### Filesystem
+![Filesystem](screens/filesystem.png)
+### Drawing with the mouse
+![Drawing with the mouse](screens/drawing.png)
+### Multitasking
+![Multi-threading](screens/multi.png)
