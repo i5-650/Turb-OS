@@ -2,7 +2,6 @@ SOURCEDIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 BACKGROUND := $(SOURCEDIR)/misc/bg.bmp
 FONT := $(SOURCEDIR)/misc/font.bin
 SFNFONT := $(SOURCEDIR)/misc/font.sfn
-INITRD := $(SOURCEDIR)/initrd.tar.gz
 KERNEL := $(SOURCEDIR)/kernel.elf
 ISO := $(SOURCEDIR)/../image.iso
 DISK = $(SOURCEDIR)/../disk.img
@@ -16,7 +15,7 @@ AS = nasm
 
 CXXFILT = llvm-cxxfilt
 
-LIMINE = $(SOURCEDIR)/../limine/limine-install
+LIMINE = $(SOURCEDIR)/../limine-old-version-saved/limine-install
 XORRISO = xorriso
 QEMU = qemu-system-x86_64
 
@@ -34,7 +33,7 @@ CFLAGS = -Ofast -pipe -Werror -DLVL5_PAGING=$(LVL5_PAGING)
 
 CPPFLAGS = -Ofast -pipe -Werror -Wno-c99-designator -DLVL5_PAGING=$(LVL5_PAGING)
 
-LDFLAGS = 
+LDFLAGS =
 ASMFLAGS = -f elf64 -g
 
 override INTERNALLDFLAGS :=  \
@@ -94,7 +93,7 @@ OBJ += $(CPPFILES:.cpp=.o)
 OBJ += $(ASMFILES:.asm=_asm.o)
 
 .PHONY: all
-all: $(KERNEL) initrd
+all: $(KERNEL)
 	$(MAKE) iso
 	$(MAKE) clean run
 
@@ -115,14 +114,9 @@ $(KERNEL):
 	@printf "ASM\t%s\n" $(lastword $(subst /, ,$<))
 	$(AS) $(ASMFLAGS) $< -o $@
 
-.PHONY: initrd
-initrd:
-	@printf "TAR\t%s\n" $(lastword $(subst /, ,$(INITRD)))
-	tar czf $(INITRD) -C $(SOURCEDIR)/initrd/ ./ --format=ustar
-
 iso:
-	cp $(KERNEL) $(BACKGROUND) $(FONT) $(INITRD) $(SOURCEDIR)/../limine.cfg $(SOURCEDIR)/../limine/limine.sys \
-		$(SOURCEDIR)/../limine/limine-cd.bin $(SOURCEDIR)/../limine/limine-eltorito-efi.bin $(SOURCEDIR)/../iso_root/
+	cp $(KERNEL) $(BACKGROUND) $(FONT) $(SOURCEDIR)/../limine.cfg $(SOURCEDIR)/../limine-old-version-saved/limine.sys \
+		$(SOURCEDIR)/../limine-old-version-saved/limine-cd.bin $(SOURCEDIR)/../limine-old-version-saved/limine-eltorito-efi.bin $(SOURCEDIR)/../iso_root/
 
 	@printf "XORRISO\t%s\n" $(lastword $(subst /, ,$(ISO)))
 	$(XORRISO) $(XORRISOFLAGS) $(SOURCEDIR)/../iso_root -o $(ISO) 2> /dev/null || echo "\e[31mFailed to build iso!\e[0m"
@@ -131,8 +125,8 @@ iso:
 	$(LIMINE) $(ISO) 2> /dev/null || echo "\e[31mFailed to install limine!\e[0m"
 
 clean:
-ifndef NOCLEAN	
-	rm -rf $(KERNEL) $(OBJ) $(HDR_DEPS) $(INITRD) $(SOURCEDIR)/../iso_root/* $(SOURCEDIR)/../null.d
+ifndef NOCLEAN
+	rm -rf $(KERNEL) $(OBJ) $(HDR_DEPS) $(SOURCEDIR)/../iso_root/* $(SOURCEDIR)/../null.d
 endif
 
 run:
